@@ -4,10 +4,13 @@ Asset-driven 2D top-down shooter scaffold with a hand-cut papercraft workflow. S
 
 ## Quick start
 
-Serve the project root over HTTP (required for Phaser asset loading):
+**Double-clicking `index.html` works** — embedded paper placeholders load via data URIs (no server required).
+
+To use scanned PNGs from the `/assets` folder, serve the project root over HTTP:
 
 ```bash
-npx --yes serve .
+npm start
+# or: npx serve .
 # or: python3 -m http.server 8080
 ```
 

@@ -44,7 +44,10 @@ class Player extends Phaser.GameObjects.Sprite {
   /** Preload player sprite. */
   static preload(scene) {
     const cfg = (window.GameConfig && GameConfig.player) || {};
-    scene.load.image(cfg.key || 'player_ship', cfg.path || 'assets/player/ship.png');
+    scene.load.image(
+      cfg.key || 'player_ship',
+      resolveAsset(cfg.path || 'assets/player/ship.png')
+    );
   }
 
   /**
