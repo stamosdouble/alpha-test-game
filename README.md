@@ -4,9 +4,9 @@ Asset-driven 2D top-down shooter scaffold with a hand-cut papercraft workflow. S
 
 ## Quick start
 
-**Do not open `index.html` as a file.** Browsers block Phaser’s image loader on `file://`, so the canvas stays empty.
+**Double-clicking `index.html` works** — embedded paper placeholders load via data URIs (no server required).
 
-Serve the **project root** over HTTP:
+To use scanned PNGs from the `/assets` folder, serve the project root over HTTP:
 
 ```bash
 npm start
@@ -14,7 +14,7 @@ npm start
 # or: python3 -m http.server 8080
 ```
 
-Open the printed URL (e.g. `http://localhost:3000`), then use **Arrows / WASD** to move and **hold Space or click** to fire the tiled paper laser.
+Open the printed URL, then use **Arrows / WASD** to move and **hold Space or click** to fire the tiled paper laser.
 
 ## Folder structure
 

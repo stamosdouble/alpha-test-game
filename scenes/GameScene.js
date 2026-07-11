@@ -63,14 +63,16 @@ class GameScene extends Phaser.Scene {
       color: '#b8a890',
     }).setDepth(100).setScrollFactor(0);
 
-    const footer = (data && data.usedFallbacks)
-      ? 'PNG load failed — showing paper fallbacks. Serve project root over HTTP.'
-      : 'Swap PNGs in /assets — no JS changes needed';
+    const footer = (data && data.usedEmbeddedOnly && window.location.protocol === 'file:')
+      ? 'file:// mode — embedded placeholders. Use npm start to load /assets PNGs.'
+      : (data && data.usedFallbacks)
+        ? 'PNG load failed — showing paper fallbacks. Serve project root over HTTP.'
+        : 'Swap PNGs in /assets — no JS changes needed';
 
     this.add.text(12, height - 28, footer, {
       fontFamily: 'Georgia, serif',
       fontSize: '12px',
-      color: (data && data.usedFallbacks) ? '#e8a060' : '#7a7060',
+      color: (data && (data.usedFallbacks || data.usedEmbeddedOnly)) ? '#e8a060' : '#7a7060',
     }).setDepth(100).setScrollFactor(0);
   }
 

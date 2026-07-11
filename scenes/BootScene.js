@@ -1,13 +1,10 @@
 /**
- * Boot scene — kicks off asset loading.
+ * Boot scene — hands off to PreloadScene.
+ * Textures are installed there (embedded data URIs + optional disk PNGs).
  */
 class BootScene extends Phaser.Scene {
   constructor() {
     super({ key: 'BootScene' });
-  }
-
-  preload() {
-    // Minimal boot; all game assets load in PreloadScene.
   }
 
   create() {
