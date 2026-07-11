@@ -1,0 +1,10 @@
+{
+  "name": "papercraft-shooter",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Asset-driven Phaser 3 papercraft top-down shooter skeleton",
+  "scripts": {
+    "start": "npx --yes serve . -p 3000",
+    "serve": "python3 -m http.server 8080"
+  }
+}

@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Papercraft Shooter — Skeleton</title>
+  <style>
+    :root {
+      --paper: #e8dcc6;
+      --ink: #2a241c;
+      --felt: #1a1e28;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100%;
+      background:
+        radial-gradient(ellipse at 30% 20%, #2a3140 0%, transparent 50%),
+        radial-gradient(ellipse at 70% 80%, #252018 0%, transparent 45%),
+        var(--felt);
+      color: var(--paper);
+      font-family: Georgia, "Times New Roman", serif;
+    }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 1rem;
+      padding: 1.5rem;
+    }
+
+    h1 {
+      font-weight: 400;
+      font-size: clamp(1.4rem, 3vw, 2rem);
+      letter-spacing: 0.04em;
+      color: var(--paper);
+    }
+
+    h1 span {
+      display: block;
+      font-size: 0.55em;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      opacity: 0.55;
+      margin-top: 0.35em;
+    }
+
+    #game-container {
+      box-shadow:
+        0 0 0 1px rgba(200, 180, 150, 0.15),
+        0 24px 48px rgba(0, 0, 0, 0.45);
+      line-height: 0;
+      max-width: 100%;
+    }
+
+    #game-container canvas {
+      display: block;
+      max-width: 100%;
+      height: auto;
+    }
+  </style>
+  <!-- Phaser 3 CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.min.js"></script>
+</head>
+<body>
+  <h1>
+    Papercraft Shooter
+    <span>Asset-driven skeleton</span>
+  </h1>
+  <div id="game-container"></div>
+
+  <!-- Config first, then modules, scenes, entry -->
+  <script src="js/config.js"></script>
+  <script src="js/Boss.js"></script>
+  <script src="js/Laser.js"></script>
+  <script src="js/Player.js"></script>
+  <script src="js/ParallaxBackground.js"></script>
+  <script src="scenes/BootScene.js"></script>
+  <script src="scenes/PreloadScene.js"></script>
+  <script src="scenes/GameScene.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
