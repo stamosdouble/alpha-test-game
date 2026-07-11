@@ -34,8 +34,14 @@ class Laser {
   /** Preload laser assets. */
   static preload(scene) {
     const cfg = (window.GameConfig && GameConfig.laser) || {};
-    scene.load.image(cfg.beamKey || 'beam_segment', cfg.beamPath || 'assets/laser/beam_segment.png');
-    scene.load.image(cfg.tipKey || 'impact_tip', cfg.tipPath || 'assets/laser/impact_tip.png');
+    scene.load.image(
+      cfg.beamKey || 'beam_segment',
+      resolveAsset(cfg.beamPath || 'assets/laser/beam_segment.png')
+    );
+    scene.load.image(
+      cfg.tipKey || 'impact_tip',
+      resolveAsset(cfg.tipPath || 'assets/laser/impact_tip.png')
+    );
   }
 
   /**

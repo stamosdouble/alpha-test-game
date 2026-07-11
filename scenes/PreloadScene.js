@@ -1,7 +1,6 @@
 /**
- * PreloadScene — loads every asset referenced by config / modules.
- * Swap PNGs under /assets freely; keys stay the same.
- * Surfaces load failures so missing art is obvious instead of silent blanks.
+ * PreloadScene — loads PNGs from /assets, then fills any gaps with
+ * procedural paper textures so Phaser's green __MISSING grid never appears.
  */
 class PreloadScene extends Phaser.Scene {
   constructor() {
@@ -28,7 +27,7 @@ class PreloadScene extends Phaser.Scene {
     this.load.on('loaderror', (file) => {
       const src = (file && (file.src || file.url || file.key)) || 'unknown';
       this.failedFiles.push(String(src));
-      console.error('[Preload] Failed to load:', src, file);
+      console.error('[Preload] Failed to load:', src);
     });
 
     this.load.on('complete', () => {
@@ -37,7 +36,6 @@ class PreloadScene extends Phaser.Scene {
       label.destroy();
     });
 
-    // Modular preload hooks — each system owns its asset paths.
     ParallaxBackground.preload(this);
     Player.preload(this);
     Laser.preload(this);
@@ -45,30 +43,22 @@ class PreloadScene extends Phaser.Scene {
   }
 
   create() {
-    if (this.failedFiles.length > 0) {
-      const width = this.cameras.main.width;
-      this.add.rectangle(width / 2, 300, 700, 220, 0x2a1c14, 0.92);
-      this.add.text(width / 2, 220, 'Some assets failed to load', {
-        fontFamily: 'Georgia, serif',
-        fontSize: '22px',
-        color: '#e8a060',
-      }).setOrigin(0.5);
+    // Replace any missing PNG keys with procedural paper art (kills green grid).
+    const generated = PaperTextures.ensureAll(this);
 
-      const list = this.failedFiles.slice(0, 8).map((f) => `• ${f}`).join('\n');
-      this.add.text(width / 2, 320, `${list}\n\nServe from the project root:\nnpx serve .   or   python3 -m http.server 8080`, {
-        fontFamily: 'Georgia, serif',
-        fontSize: '14px',
-        color: '#d8cbb8',
-        align: 'center',
-        lineSpacing: 6,
-      }).setOrigin(0.5);
-
-      // Still enter the game so any successful assets are visible.
-      this.time.delayedCall(2500, () => this.scene.start('GameScene'));
-      return;
+    if (generated.length > 0 || this.failedFiles.length > 0) {
+      console.warn(
+        '[Preload] Using procedural placeholders for:',
+        generated,
+        'Failed files:',
+        this.failedFiles
+      );
     }
 
-    this.scene.start('GameScene');
+    this.scene.start('GameScene', {
+      usedFallbacks: generated.length > 0,
+      failedFiles: this.failedFiles.slice(),
+    });
   }
 }
 

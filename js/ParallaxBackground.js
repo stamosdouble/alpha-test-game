@@ -41,7 +41,7 @@ class ParallaxBackground {
     const list = layers || (window.GameConfig && GameConfig.parallaxLayers) || [];
     list.forEach((entry) => {
       if (entry.path) {
-        scene.load.image(entry.key, entry.path);
+        scene.load.image(entry.key, resolveAsset(entry.path));
       }
     });
   }

@@ -36,7 +36,8 @@ class Boss extends Phaser.GameObjects.Container {
     names.forEach((name) => {
       const key = Boss.textureKey(name);
       if (!scene.textures.exists(key)) {
-        scene.load.image(key, `${dir}${name}.png`);
+        const path = `${dir}${name}.png`;
+        scene.load.image(key, resolveAsset(path));
       }
     });
   }
