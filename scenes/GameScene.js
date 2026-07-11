@@ -7,8 +7,11 @@ class GameScene extends Phaser.Scene {
     super({ key: 'GameScene' });
   }
 
-  create() {
+  create(data) {
     const { width, height } = this.scale;
+
+    // Safety net — never render Phaser's green __MISSING texture.
+    PaperTextures.ensureAll(this);
 
     // Parallax: driven entirely by GameConfig.parallaxLayers
     this.parallax = new ParallaxBackground(this);
@@ -60,10 +63,16 @@ class GameScene extends Phaser.Scene {
       color: '#b8a890',
     }).setDepth(100).setScrollFactor(0);
 
-    this.add.text(12, height - 28, 'Swap PNGs in /assets — no JS changes needed', {
+    const footer = (data && data.usedEmbeddedOnly && window.location.protocol === 'file:')
+      ? 'file:// mode — embedded placeholders. Use npm start to load /assets PNGs.'
+      : (data && data.usedFallbacks)
+        ? 'PNG load failed — showing paper fallbacks. Serve project root over HTTP.'
+        : 'Swap PNGs in /assets — no JS changes needed';
+
+    this.add.text(12, height - 28, footer, {
       fontFamily: 'Georgia, serif',
       fontSize: '12px',
-      color: '#7a7060',
+      color: (data && (data.usedFallbacks || data.usedEmbeddedOnly)) ? '#e8a060' : '#7a7060',
     }).setDepth(100).setScrollFactor(0);
   }
 
