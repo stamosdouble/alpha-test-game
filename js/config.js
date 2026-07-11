@@ -1,0 +1,43 @@
+/**
+ * Game configuration — swap art freely; only change keys/paths here if you rename files.
+ * All visual content lives under /assets and is referenced by string keys.
+ */
+const GameConfig = {
+  width: 800,
+  height: 600,
+  backgroundColor: '#1a1e28',
+
+  /** Boss part filenames (without .png) from /assets/boss_parts/ */
+  bossParts: ['hull', 'wing_l', 'wing_r', 'rivets'],
+
+  /** Parallax layers: add entries to scroll new backgrounds automatically. */
+  parallaxLayers: [
+    { key: 'bg_far', path: 'assets/background/layer_far.png', speed: 0.15 },
+    { key: 'bg_mid', path: 'assets/background/layer_mid.png', speed: 0.35 },
+    { key: 'bg_near', path: 'assets/background/layer_near.png', speed: 0.7 },
+  ],
+
+  player: {
+    key: 'player_ship',
+    path: 'assets/player/ship.png',
+    speed: 220,
+    swayAmplitude: 2.5,
+    swaySpeed: 3.2,
+  },
+
+  laser: {
+    beamKey: 'beam_segment',
+    beamPath: 'assets/laser/beam_segment.png',
+    tipKey: 'impact_tip',
+    tipPath: 'assets/laser/impact_tip.png',
+  },
+
+  boss: {
+    partsFolder: 'assets/boss_parts/',
+    x: 400,
+    y: 140,
+  },
+};
+
+// Export for browser globals (no bundler required).
+window.GameConfig = GameConfig;
