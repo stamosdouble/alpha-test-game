@@ -65,7 +65,8 @@ class Boss extends Phaser.GameObjects.Container {
         return;
       }
 
-      const sprite = this.scene.add.image(0, 0, key);
+      // Create as a bare Image (not scene.add) so it only lives in this container.
+      const sprite = new Phaser.GameObjects.Image(this.scene, 0, 0, key);
       sprite.setOrigin(0.5, 0.5);
       this.add(sprite);
       this.partSprites[name] = sprite;

@@ -3,12 +3,14 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" type="image/png" href="assets/favicon.png" />
   <title>Papercraft Shooter — Skeleton</title>
   <style>
     :root {
       --paper: #e8dcc6;
       --ink: #2a241c;
       --felt: #1a1e28;
+      --warn: #e8a060;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -55,6 +57,7 @@
         0 24px 48px rgba(0, 0, 0, 0.45);
       line-height: 0;
       max-width: 100%;
+      position: relative;
     }
 
     #game-container canvas {
@@ -62,15 +65,40 @@
       max-width: 100%;
       height: auto;
     }
+
+    #boot-error {
+      display: none;
+      max-width: 36rem;
+      padding: 1.25rem 1.5rem;
+      border: 1px solid rgba(232, 160, 96, 0.45);
+      background: rgba(40, 28, 18, 0.92);
+      color: var(--paper);
+      line-height: 1.55;
+    }
+
+    #boot-error strong {
+      color: var(--warn);
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 400;
+      font-size: 1.1rem;
+    }
+
+    #boot-error code {
+      font-family: ui-monospace, Menlo, Consolas, monospace;
+      font-size: 0.9em;
+      color: var(--warn);
+    }
   </style>
-  <!-- Phaser 3 CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.min.js"></script>
+  <!-- Local Phaser build (no CDN required) -->
+  <script src="js/vendor/phaser.min.js"></script>
 </head>
 <body>
   <h1>
     Papercraft Shooter
     <span>Asset-driven skeleton</span>
   </h1>
+  <div id="boot-error" role="alert"></div>
   <div id="game-container"></div>
 
   <!-- Config first, then modules, scenes, entry -->
