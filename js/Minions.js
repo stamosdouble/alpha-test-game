@@ -30,11 +30,19 @@ class Minions {
       maxSize: 60,
     });
 
-    scene.time.addEvent({
+    this._spawnTimer = scene.time.addEvent({
       delay: this.spawnIntervalMs,
       loop: true,
       callback: () => this.spawnPair(),
     });
+  }
+
+  /** Stop spawn timer for scene restart. */
+  destroy() {
+    if (this._spawnTimer) {
+      this._spawnTimer.remove(false);
+      this._spawnTimer = null;
+    }
   }
 
   /** Preload minion + green bullet sprites. */

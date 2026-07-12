@@ -28,12 +28,24 @@ class PowerPellets {
     });
 
     // First string soon after entrance, then on a cycle.
-    scene.time.delayedCall(3500, () => this.fireString());
-    scene.time.addEvent({
+    this._firstDelay = scene.time.delayedCall(3500, () => this.fireString());
+    this._stringTimer = scene.time.addEvent({
       delay: this.stringIntervalMs,
       loop: true,
       callback: () => this.fireString(),
     });
+  }
+
+  /** Stop timers for scene restart. */
+  destroy() {
+    if (this._firstDelay) {
+      this._firstDelay.remove(false);
+      this._firstDelay = null;
+    }
+    if (this._stringTimer) {
+      this._stringTimer.remove(false);
+      this._stringTimer = null;
+    }
   }
 
   /** Preload the pellet sprite. */
@@ -56,6 +68,7 @@ class PowerPellets {
 
     for (let i = 0; i < this.stringCount; i++) {
       this.scene.time.delayedCall(i * this.stringGapMs, () => {
+        if (!this.scene || !this.scene.sys || !this.scene.sys.isActive()) return;
         const b = this.scene.boss;
         if (!b || !b.visible) return;
         const muzzles = b.getMuzzles ? b.getMuzzles() : [{ x: b.x, y: b.y }];

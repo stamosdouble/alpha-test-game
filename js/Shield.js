@@ -30,12 +30,30 @@ class Shield {
     this.pickupBornAt = 0;
 
     // First token appears shortly after the fight starts, then on a cycle.
-    scene.time.delayedCall(4000, () => this._maybeSpawnPickup());
-    scene.time.addEvent({
+    this._spawnDelay = scene.time.delayedCall(4000, () => this._maybeSpawnPickup());
+    this._spawnTimer = scene.time.addEvent({
       delay: this.pickupIntervalMs,
       loop: true,
       callback: () => this._maybeSpawnPickup(),
     });
+  }
+
+  /** Tear down timers / ring / pickup for scene restart. */
+  destroy() {
+    if (this._spawnDelay) {
+      this._spawnDelay.remove(false);
+      this._spawnDelay = null;
+    }
+    if (this._spawnTimer) {
+      this._spawnTimer.remove(false);
+      this._spawnTimer = null;
+    }
+    this._destroyPickup();
+    if (this.ring) {
+      this.ring.destroy();
+      this.ring = null;
+    }
+    this.hitsLeft = 0;
   }
 
   /** Preload shield sprites (token + ring). */
