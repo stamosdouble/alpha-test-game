@@ -1,7 +1,7 @@
 /**
- * Boss mechanical grab-arms — elastic paper limbs that can stretch the
- * full playfield height, pinch the player, and launch homing missiles
- * from each claw tip.
+ * Boss mechanical grab-arms — elastic paper limbs bolted through the
+ * hull rivets. They stretch the full playfield height, pinch the player,
+ * and launch homing missiles from each claw tip.
  *
  * Art keys (procedural by default):
  *   boss_arm_seg  — brass tube segment
@@ -37,8 +37,8 @@ class BossArms {
     if (cfg.lowerLen != null && options.restLower == null) this.restLower = cfg.lowerLen * 0.65;
 
     this.shoulders = (options.shoulders || cfg.shoulders || [
-      { x: -96, y: 36 },
-      { x: 96, y: 36 },
+      { x: -64, y: 22 },
+      { x: 64, y: 22 },
     ]).map((s) => ({ ...s }));
 
     this.segKey = cfg.segKey || 'boss_arm_seg';
@@ -229,10 +229,15 @@ class BossArms {
       }
     }
 
-    g.fillStyle(0x3a2c20, 1);
-    g.fillCircle(shoulder.x, shoulder.y, 9);
+    // Rivet socket on the hull — arms read as bolted through the paper rivet.
+    g.fillStyle(0x2a2018, 1);
+    g.fillCircle(shoulder.x, shoulder.y, 14);
+    g.fillStyle(0x6b5540, 1);
+    g.fillCircle(shoulder.x, shoulder.y, 11);
     g.fillStyle(0xc4a484, 1);
-    g.fillCircle(shoulder.x, shoulder.y, 5);
+    g.fillCircle(shoulder.x, shoulder.y, 7);
+    g.fillStyle(0xe8dcc6, 0.9);
+    g.fillCircle(shoulder.x - 2, shoulder.y - 2, 2.5);
     g.fillStyle(0x3a2c20, 1);
     g.fillCircle(elbow.x, elbow.y, 8);
     g.fillStyle(0xd8b896, 1);
