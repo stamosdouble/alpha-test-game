@@ -181,6 +181,20 @@ class GameScene extends Phaser.Scene {
     }).setOrigin(1, 0).setDepth(100).setScrollFactor(0);
     this._updateHitsLabel();
 
+    // Player hull meter — bottom center of the playfield.
+    const pBarW = Math.min(300, width - 140);
+    this.playerHpBarW = pBarW;
+    this.add.rectangle(width / 2, height - 36, pBarW + 6, 18, 0x2a241c, 0.9)
+      .setDepth(100).setScrollFactor(0);
+    this.playerHpFill = this.add.rectangle(width / 2 - pBarW / 2, height - 36, pBarW, 11, 0x7dcea0)
+      .setOrigin(0, 0.5).setDepth(101).setScrollFactor(0);
+    this.playerHpText = this.add.text(width / 2, height - 36, '', {
+      fontFamily: 'Georgia, serif',
+      fontSize: '11px',
+      color: '#e8dcc6',
+    }).setOrigin(0.5).setDepth(102).setScrollFactor(0);
+    this._updatePlayerHpBar();
+
     this.shieldLabel = this.add.text(width - 12, 52, '', {
       fontFamily: 'Georgia, serif',
       fontSize: '13px',
@@ -240,9 +254,9 @@ class GameScene extends Phaser.Scene {
         ? 'PNG load failed — showing paper fallbacks (see console __assetReport)'
         : 'Put PNGs in /assets beside index.html, then Ctrl+Shift+R';
 
-    this.add.text(12, height - 28, footer, {
+    this.add.text(12, height - 58, footer, {
       fontFamily: 'Georgia, serif',
-      fontSize: '12px',
+      fontSize: '11px',
       color: diskApplied > 0 ? '#8fbf8a' : '#e8a060',
     }).setDepth(100).setScrollFactor(0);
   }
@@ -426,7 +440,22 @@ class GameScene extends Phaser.Scene {
 
   _updateHitsLabel() {
     if (!this.hitsLabel) return;
-    this.hitsLabel.setText(`Hull: ${Math.max(0, this.maxHits - this.hitsTaken)} / ${this.maxHits}`);
+    const left = Math.max(0, this.maxHits - this.hitsTaken);
+    this.hitsLabel.setText(`Hull: ${left} / ${this.maxHits}`);
+    this._updatePlayerHpBar();
+  }
+
+  _updatePlayerHpBar() {
+    if (!this.playerHpFill) return;
+    const left = Math.max(0, this.maxHits - this.hitsTaken);
+    const ratio = this.maxHits > 0 ? left / this.maxHits : 0;
+    this.playerHpFill.width = this.playerHpBarW * ratio;
+    // Green → amber → red as hull drops.
+    const color = ratio > 0.55 ? 0x7dcea0 : ratio > 0.25 ? 0xe8a060 : 0xd05a46;
+    this.playerHpFill.setFillStyle(color);
+    if (this.playerHpText) {
+      this.playerHpText.setText(`HULL  ${left} / ${this.maxHits}`);
+    }
   }
 
   _updateComboLabel() {
@@ -491,11 +520,23 @@ class GameScene extends Phaser.Scene {
         ? this.add.image(this.player.x, this.player.y - 28, 'arm_missile')
         : this.add.image(this.player.x, this.player.y - 28, GameConfig.projectile.key));
 
-    blast.setScale(this.powerCfg.blastScale != null ? this.powerCfg.blastScale : 2.6);
+    blast.setScale(this.powerCfg.blastScale != null ? this.powerCfg.blastScale : 1.3);
     blast.setDepth(30);
     blast.vx = 0;
     blast.vy = -(this.powerCfg.blastSpeed || 320);
     blast.isGiantMissile = true;
+    blast._flashOn = true;
+    // Pulse red while homing.
+    blast._flashEvent = this.time.addEvent({
+      delay: 90,
+      loop: true,
+      callback: () => {
+        if (!blast.active) return;
+        blast._flashOn = !blast._flashOn;
+        if (blast._flashOn) blast.setTintFill(0xff2a2a);
+        else blast.clearTint();
+      },
+    });
     this.homingBlasts.push(blast);
   }
 
@@ -506,6 +547,7 @@ class GameScene extends Phaser.Scene {
 
     this.homingBlasts = this.homingBlasts.filter((blast) => {
       if (this.bossDefeated || !this.boss.visible) {
+        if (blast._flashEvent) blast._flashEvent.remove(false);
         blast.destroy();
         return false;
       }
@@ -536,6 +578,7 @@ class GameScene extends Phaser.Scene {
         const remaining = this.boss.takeDamage(this.powerCfg.blastDamage || 150);
         this._updateBossHpBar();
         if (remaining <= 0) this._defeatBoss();
+        if (blast._flashEvent) blast._flashEvent.remove(false);
         blast.destroy();
         return false;
       }
