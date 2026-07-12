@@ -4,8 +4,8 @@
  */
 const GameConfig = {
   /** Vertical arcade playfield (19XX-style tall orientation). */
-  width: 480,
-  height: 800,
+  width: 720,
+  height: 1200,
   backgroundColor: '#1a1e28',
   title: 'Paper Squadron',
 
