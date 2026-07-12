@@ -160,6 +160,10 @@ class Projectiles {
     );
     // Random spin direction gives the paper disc a tossed feel.
     shot.spin = (Math.random() < 0.5 ? -1 : 1) * this.spinSpeed;
+
+    if (window.DropShadow) {
+      DropShadow.attach(this.scene, shot);
+    }
     return true;
   }
 
@@ -173,14 +177,19 @@ class Projectiles {
     const margin = 64;
 
     this.group.children.each((shot) => {
-      if (!shot.active) return;
+      if (!shot.active) {
+        if (window.DropShadow) DropShadow.hide(shot);
+        return;
+      }
       shot.rotation += (shot.spin || 0) * dt;
+      if (window.DropShadow) DropShadow.sync(shot);
       if (
         shot.y < -margin || shot.y > cam.height + margin ||
         shot.x < -margin || shot.x > cam.width + margin
       ) {
         this.group.killAndHide(shot);
         shot.body.stop();
+        if (window.DropShadow) DropShadow.hide(shot);
       }
     });
   }

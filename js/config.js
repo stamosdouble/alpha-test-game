@@ -9,6 +9,14 @@ const GameConfig = {
   backgroundColor: '#1a1e28',
   title: 'Paper Squadron',
 
+  /** Shared papercraft drop shadow for ships and shots. */
+  shadow: {
+    offsetX: 6,
+    offsetY: 8,
+    alpha: 0.38,
+    tint: 0x1a1410,
+  },
+
   /** Boss part filenames (without .png) from /assets/boss_parts/ */
   bossParts: ['hull', 'wing_l', 'wing_r', 'rivets'],
 

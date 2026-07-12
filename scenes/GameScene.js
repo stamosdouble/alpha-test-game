@@ -61,6 +61,7 @@ class GameScene extends Phaser.Scene {
     // Player with centered origin + organic sway
     this.player = new Player(this, width / 2, height - 100);
     this.player.setDepth(20);
+    if (window.DropShadow) DropShadow.sync(this.player);
 
     // Tiled paper laser (beam_segment + impact_tip)
     this.laser = new Laser(this);

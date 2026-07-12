@@ -36,6 +36,9 @@ class Player extends Phaser.GameObjects.Sprite {
       this.body.setSize(this.width * 0.5, this.height * 0.5, true);
     }
 
+    this.setDepth(20);
+    DropShadow.attach(scene, this);
+
     this.invulnerableUntil = 0;
 
     this.cursors = scene.input.keyboard.createCursorKeys();
@@ -102,6 +105,8 @@ class Player extends Phaser.GameObjects.Sprite {
     if (this.body) {
       this.body.reset(this.x, this.y);
     }
+
+    DropShadow.sync(this);
   }
 
   /**

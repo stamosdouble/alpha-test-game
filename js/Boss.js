@@ -65,7 +65,17 @@ class Boss extends Phaser.GameObjects.Container {
     this.removeAll(true);
     this.partSprites = {};
     this.flashOverlays = {};
+    this.shadowSprites = {};
     this.partNames = partNames.slice();
+
+    // Shadows first (back of the stack), then paper parts, then flash overlays.
+    partNames.forEach((name) => {
+      const key = Boss.textureKey(name);
+      if (!this.scene.textures.exists(key)) return;
+      if (window.DropShadow) {
+        this.shadowSprites[name] = DropShadow.createLocal(this.scene, this, key);
+      }
+    });
 
     partNames.forEach((name) => {
       const key = Boss.textureKey(name);
