@@ -52,6 +52,8 @@ class BossBullets {
   fireWave() {
     const boss = this.scene.boss;
     if (!boss || !boss.visible) return;
+    // Hold fire until the entrance descent finishes.
+    if (this.scene.bossEntranceDone === false) return;
 
     const pattern = this.patterns[this.patternIndex];
     this.patternIndex = (this.patternIndex + 1) % this.patterns.length;

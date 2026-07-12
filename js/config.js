@@ -24,6 +24,8 @@ const GameConfig = {
     speed: 220,
     swayAmplitude: 2.5,
     swaySpeed: 3.2,
+    /** Bullet hits the ship can take before it is destroyed. */
+    maxHits: 6,
   },
 
   projectile: {
@@ -44,8 +46,10 @@ const GameConfig = {
 
     speed: 420,
     fireRateMs: 220,
-    scale: 0.35,
-    spinSpeed: 4,
+    scale: 0.175,
+    spinSpeed: 4.6,
+    /** Damage dealt to the boss per hit. */
+    damage: 50,
   },
 
   bossBullets: {
@@ -85,9 +89,13 @@ const GameConfig = {
   boss: {
     partsFolder: 'assets/boss_parts/',
     x: 400,
-    y: 140,
+    y: 160,
+    scale: 1.5,
+    maxHp: 1000,
+    /** Descend-from-above entrance before the fight starts. */
+    entranceMs: 2400,
     /** Horizontal sway across the screen while firing. */
-    swayAmplitude: 240,
+    swayAmplitude: 200,
     swaySpeed: 0.45,
   },
 };
