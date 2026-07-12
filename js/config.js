@@ -18,7 +18,7 @@ const GameConfig = {
   },
 
   /** Boss part filenames (without .png) from /assets/boss_parts/ */
-  bossParts: ['hull', 'wing_l', 'wing_r', 'rivets'],
+  bossParts: ['hull', 'rivets'],
 
   /** Parallax layers: add entries to scroll new backgrounds automatically. */
   parallaxLayers: [

@@ -59,7 +59,7 @@ class Boss extends Phaser.GameObjects.Container {
    * Parts stack in array order (first = bottom, last = top).
    * All sprites are added at local (0, 0) — compose in your PNG scans.
    *
-   * @param {string[]} partNames e.g. ['hull', 'wing_l', 'wing_r', 'rivets']
+   * @param {string[]} partNames e.g. ['hull', 'rivets']
    */
   assemble(partNames) {
     this.removeAll(true);

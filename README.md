@@ -24,7 +24,7 @@ Then hard-refresh (`Ctrl+Shift+R`) after each PNG swap. Splash shows `Using N fi
 /
 ├── index.html
 ├── assets/
-│   ├── boss_parts/     # hull.png, wing_l.png, wing_r.png, rivets.png, …
+│   ├── boss_parts/     # hull.png, rivets.png, … (wing_l/wing_r optional)
 │   ├── laser/          # beam_segment.png, impact_tip.png
 │   ├── player/         # ship.png
 │   └── background/     # layer_far.png, layer_mid.png, layer_near.png
