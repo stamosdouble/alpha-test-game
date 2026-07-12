@@ -69,11 +69,15 @@ class Boss extends Phaser.GameObjects.Container {
     this.partNames = partNames.slice();
 
     // Shadows first (back of the stack), then paper parts, then flash overlays.
+    const span = (window.GameConfig && GameConfig.boss && GameConfig.boss.wingSpanOffset) || 0;
     partNames.forEach((name) => {
       const key = Boss.textureKey(name);
       if (!this.scene.textures.exists(key)) return;
       if (window.DropShadow) {
-        this.shadowSprites[name] = DropShadow.createLocal(this.scene, this, key);
+        const shadow = DropShadow.createLocal(this.scene, this, key);
+        if (name === 'wing_l') shadow.x -= span;
+        if (name === 'wing_r') shadow.x += span;
+        this.shadowSprites[name] = shadow;
       }
     });
 
@@ -87,12 +91,15 @@ class Boss extends Phaser.GameObjects.Container {
       // Create as a bare Image (not scene.add) so it only lives in this container.
       const sprite = new Phaser.GameObjects.Image(this.scene, 0, 0, key);
       sprite.setOrigin(0.5, 0.5);
+      // Push wing parts outward for a wider wingspan silhouette.
+      if (name === 'wing_l') sprite.x = -span;
+      if (name === 'wing_r') sprite.x = span;
       this.add(sprite);
       this.partSprites[name] = sprite;
 
       // Hit-flash layer: same PNG silhouette, ADD-blended so only the art
       // brightens to white (no rectangle wash, no arms/player).
-      const flash = new Phaser.GameObjects.Image(this.scene, 0, 0, key);
+      const flash = new Phaser.GameObjects.Image(this.scene, sprite.x, 0, key);
       flash.setOrigin(0.5, 0.5);
       flash.setBlendMode(Phaser.BlendModes.ADD);
       flash.setAlpha(0);

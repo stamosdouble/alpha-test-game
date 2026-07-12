@@ -106,6 +106,15 @@ class GameScene extends Phaser.Scene {
     this.maxHits = (GameConfig.player && GameConfig.player.maxHits) || 6;
     this.projectileDamage = (GameConfig.projectile && GameConfig.projectile.damage) || 5;
 
+    const laserCfg = GameConfig.laser || {};
+    this.laserDamage = laserCfg.damage != null ? laserCfg.damage : 100;
+    this.laserActiveMs = laserCfg.activeMs != null ? laserCfg.activeMs : 5000;
+    this.laserCooldownMs = laserCfg.cooldownMs != null ? laserCfg.cooldownMs : 20000;
+    this.laserTickMs = laserCfg.tickMs != null ? laserCfg.tickMs : 200;
+    this.laserFuelMs = this.laserActiveMs;
+    this.laserCooldownUntil = 0;
+    this.laserNextTickAt = 0;
+
     this.physics.add.overlap(this.player, this.bossBullets.group, (player, bullet) => {
       this._onPlayerHitByBullet(player, bullet);
     });
@@ -123,21 +132,17 @@ class GameScene extends Phaser.Scene {
       this._registerComboHit();
     });
 
-    // Main weapon: 'projectile' or 'laser' — toggled with L.
-    this.weapon = 'projectile';
-
+    // Space / click fire projectiles. Hold L to activate the flaming paper laser.
     this.shooting = false;
+    this.laserHeld = false;
     this.spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+    this.laserKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.L);
     this.spaceKey.on('down', () => { this.shooting = true; });
-    this.spaceKey.on('up', () => {
-      this.shooting = false;
-      if (!this.firing) this.laser.hide();
-    });
-
-    this.input.keyboard.on('keydown-L', () => {
-      this.weapon = this.weapon === 'projectile' ? 'laser' : 'projectile';
+    this.spaceKey.on('up', () => { this.shooting = false; });
+    this.laserKey.on('down', () => { this.laserHeld = true; });
+    this.laserKey.on('up', () => {
+      this.laserHeld = false;
       this.laser.hide();
-      this._updateShotLabel();
     });
 
     // Number keys 1..9 lock a projectile type; 0 returns to random.
@@ -145,26 +150,21 @@ class GameScene extends Phaser.Scene {
     this.input.keyboard.on('keydown', (event) => {
       if (event.key === '0') {
         this.projectiles.setRandom();
-        this.weapon = 'projectile';
         this._updateShotLabel();
         return;
       }
       const n = parseInt(event.key, 10);
       if (n >= 1 && n <= types.length && this.projectiles.setType(types[n - 1])) {
-        this.weapon = 'projectile';
         this._updateShotLabel();
       }
     });
 
-    // Mouse / pointer fires the active weapon too
+    // Mouse / pointer also fires projectiles
     this.firing = false;
     this.input.on('pointerdown', () => { this.firing = true; });
-    this.input.on('pointerup', () => {
-      this.firing = false;
-      if (!this.shooting) this.laser.hide();
-    });
+    this.input.on('pointerup', () => { this.firing = false; });
 
-    this.add.text(12, 12, 'WASD / arrows · Space · L laser · Enter from title', {
+    this.add.text(12, 12, 'WASD / arrows · Space fire · Hold L flame laser', {
       fontFamily: 'Georgia, serif',
       fontSize: '14px',
       color: '#b8a890',
@@ -318,20 +318,19 @@ class GameScene extends Phaser.Scene {
       this._breakCombo();
     }
 
+    // Hold L → flaming paper laser. Space / click → projectiles.
+    if (!this.playerDead && this.laserHeld) {
+      this._tryFireLaser(time, delta);
+    } else {
+      this.laser.hide();
+    }
+
     const triggerHeld = (this.shooting || this.firing) && !this.playerDead;
     if (triggerHeld) {
-      if (this.weapon === 'laser') {
-        if (this.bossDefeated) {
-          this.laser.hide();
-        } else {
-          // Beam from ship center to boss center; tip tracks every frame.
-          this.laser.update(this.player.x, this.player.y, this.boss.x, this.boss.y);
-        }
-      } else {
-        // Volley from both wing muzzles, travelling straight up.
-        this.projectiles.fireVolley(this.player.getMuzzles());
-      }
+      this.projectiles.fireVolley(this.player.getMuzzles());
     }
+
+    this._updateShotLabel();
 
     this.shield.update(time, delta);
     this._updateShieldLabel();
@@ -389,7 +388,9 @@ class GameScene extends Phaser.Scene {
   _applyPlayerDamage(x, y) {
     if (this.playerDead) return;
 
+    // Any real hit attempt breaks the combo chain.
     if (this.shield.isActive()) {
+      this._breakCombo();
       this.shield.absorbHit();
       this._updateShieldLabel();
       return;
@@ -425,16 +426,80 @@ class GameScene extends Phaser.Scene {
 
   _updateShotLabel() {
     if (!this.shotLabel) return;
-    if (this.weapon === 'laser') {
-      this.shotLabel.setText('Weapon: paper laser');
-      return;
+    const time = this.time ? this.time.now : 0;
+    const cooling = time < this.laserCooldownUntil;
+    let laserStatus;
+    if (cooling) {
+      const left = Math.max(0, Math.ceil((this.laserCooldownUntil - time) / 1000));
+      laserStatus = `Laser cooling ${left}s`;
+    } else {
+      const fuelSec = Math.max(0, this.laserFuelMs / 1000).toFixed(1);
+      laserStatus = `Laser ${fuelSec}s`;
     }
+
     if (this.projectiles.randomize) {
-      this.shotLabel.setText('Shot: random');
+      this.shotLabel.setText(`Shot: random · ${laserStatus}`);
       return;
     }
     const type = this.projectiles.currentType;
-    this.shotLabel.setText(type ? `Shot: ${type}` : 'Shot: projectile');
+    const shot = type ? `Shot: ${type}` : 'Shot: projectile';
+    this.shotLabel.setText(`${shot} · ${laserStatus}`);
+  }
+
+  /**
+   * Flaming paper laser — drains a 5s fuel tank, then 20s cooldown.
+   * Deals laser.damage DPS while the beam is on the boss.
+   */
+  _tryFireLaser(time, delta) {
+    if (this.bossDefeated || !this.boss || !this.boss.visible) {
+      this.laser.hide();
+      return;
+    }
+
+    if (time < this.laserCooldownUntil) {
+      this.laser.hide();
+      return;
+    }
+
+    if (this.laserFuelMs <= 0) {
+      this.laser.hide();
+      this.laserCooldownUntil = time + this.laserCooldownMs;
+      this.laserFuelMs = this.laserActiveMs;
+      this._updateShotLabel();
+      return;
+    }
+
+    this.laser.update(this.player.x, this.player.y, this.boss.x, this.boss.y, delta);
+    this.laserFuelMs = Math.max(0, this.laserFuelMs - delta);
+
+    if (this.laserFuelMs <= 0) {
+      this.laser.hide();
+      this.laserCooldownUntil = time + this.laserCooldownMs;
+      this.laserFuelMs = this.laserActiveMs;
+      this._updateShotLabel();
+      return;
+    }
+
+    if (time >= this.laserNextTickAt) {
+      this.laserNextTickAt = time + this.laserTickMs;
+      this._applyLaserDamage();
+    }
+  }
+
+  /** Apply laser DPS tick against the boss. */
+  _applyLaserDamage() {
+    if (!this.boss || !this.boss.visible || this.bossDefeated) return;
+    if (!this.laser || !this.laser.active) return;
+
+    const dmg = Math.max(1, Math.round(this.laserDamage * (this.laserTickMs / 1000)));
+    this.sparks.burst(
+      this.boss.x + Phaser.Math.Between(-18, 18),
+      this.boss.y + Phaser.Math.Between(-14, 14)
+    );
+    this._registerComboHit();
+    const remaining = this.boss.takeDamage(dmg);
+    this._updateBossHpBar();
+    if (remaining <= 0) this._defeatBoss();
   }
 
   _updateHitsLabel() {
