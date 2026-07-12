@@ -1,6 +1,6 @@
 /**
  * Title / splash screen — Paper Squadron.
- * Press Enter to begin the vertical arcade fight.
+ * Press Enter to begin the fight.
  */
 class TitleScene extends Phaser.Scene {
   constructor() {
@@ -31,7 +31,7 @@ class TitleScene extends Phaser.Scene {
       lineSpacing: 8,
     }).setOrigin(0.5).setDepth(10);
 
-    this.add.text(width / 2, height * 0.52, 'A hand-cut vertical shooter', {
+    this.add.text(width / 2, height * 0.52, 'A hand-cut paper shooter', {
       fontFamily: 'Georgia, "Times New Roman", serif',
       fontSize: '16px',
       color: '#b8a890',

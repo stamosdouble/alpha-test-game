@@ -3,9 +3,9 @@
  * All visual content lives under /assets and is referenced by string keys.
  */
 const GameConfig = {
-  /** Vertical arcade playfield (19XX-style tall orientation). */
-  width: 720,
-  height: 1200,
+  /** Landscape playfield. */
+  width: 960,
+  height: 720,
   backgroundColor: '#1a1e28',
   title: 'Paper Squadron',
 
@@ -143,7 +143,7 @@ const GameConfig = {
 
   boss: {
     partsFolder: 'assets/boss_parts/',
-    x: 240,
+    x: 480,
     y: 160,
     scale: 1.5,
     maxHp: 1000,
@@ -159,7 +159,7 @@ const GameConfig = {
     hitWidth: 255,
     hitHeight: 195,
     /** Horizontal sway across the screen while firing. */
-    swayAmplitude: 120,
+    swayAmplitude: 260,
     swaySpeed: 0.45,
   },
 };

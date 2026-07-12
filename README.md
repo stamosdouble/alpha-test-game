@@ -1,6 +1,6 @@
 # Paper Squadron
 
-Vertical arcade shmup (19XX-style orientation) with a hand-cut papercraft workflow. Swap scanned paper PNGs into `/assets` without editing game logic.
+Landscape papercraft shmup with a hand-cut art workflow. Swap scanned paper PNGs into `/assets` without editing game logic.
 
 ## Quick start
 
