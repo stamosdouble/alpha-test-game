@@ -66,7 +66,7 @@ const GameConfig = {
     /** Full meter launches a giant homing missile at the boss. */
     blastDamage: 150,
     blastSpeed: 320,
-    blastScale: 2.6,
+    blastScale: 1.3,
     blastKey: 'giant_homing_missile',
   },
 
@@ -173,6 +173,9 @@ const GameConfig = {
       holdMs: 320,
       retractMs: 720,
       grabRadius: 48,
+      /** Keep claw this far from the player — threaten, don't grab. */
+      standoffDistance: 110,
+      canGrab: false,
       /** Coiled rest lengths — arms stretch elastically up to full screen. */
       restUpper: 70,
       restLower: 64,

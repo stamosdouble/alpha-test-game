@@ -24,6 +24,10 @@ class BossArms {
     this.holdMs = options.holdMs != null ? options.holdMs : (cfg.holdMs || 320);
     this.retractMs = options.retractMs != null ? options.retractMs : (cfg.retractMs || 700);
     this.grabRadius = options.grabRadius != null ? options.grabRadius : (cfg.grabRadius || 48);
+    this.standoffDistance = options.standoffDistance != null
+      ? options.standoffDistance
+      : (cfg.standoffDistance != null ? cfg.standoffDistance : 110);
+    this.canGrab = options.canGrab != null ? options.canGrab : cfg.canGrab === true;
 
     // Rest (coiled) bone lengths — stretch elastically far beyond these.
     this.restUpper = options.restUpper != null ? options.restUpper : (cfg.restUpper || 70);
@@ -287,6 +291,24 @@ class BossArms {
     });
   }
 
+  /**
+   * Aim point near the player but stopped short by standoffDistance.
+   * @returns {{x:number,y:number}}
+   */
+  _aimNearPlayer(shoulder, player) {
+    if (!player || !player.active) {
+      return { x: shoulder.x, y: shoulder.y + 180 };
+    }
+    const dx = player.x - shoulder.x;
+    const dy = player.y - shoulder.y;
+    const dist = Math.hypot(dx, dy) || 1;
+    const stopAt = Math.max(40, dist - this.standoffDistance);
+    return {
+      x: shoulder.x + (dx / dist) * stopAt,
+      y: shoulder.y + (dy / dist) * stopAt,
+    };
+  }
+
   _startAttack(time, player) {
     if (!player || !player.active) return;
     const living = this.livingArms();
@@ -304,9 +326,10 @@ class BossArms {
     chosen.reach = 0;
     chosen.grabbed = false;
     chosen.firedOnPinch = false;
-    const { height } = this.scene.scale;
-    chosen.targetX = player.x;
-    chosen.targetY = Math.min(height - 24, Math.max(player.y, player.y));
+    const shoulder = this._shoulderWorld(chosen);
+    const aim = this._aimNearPlayer(shoulder, player);
+    chosen.targetX = aim.x;
+    chosen.targetY = aim.y;
     chosen.stateUntil = time + this.reachMs;
     chosen.claw.setDepth(26);
   }
@@ -321,12 +344,11 @@ class BossArms {
 
     if (arm.state === 'reaching') {
       if (player && player.active) {
-        // Elastic track — chase the ship all the way down the playfield.
-        arm.targetX = Phaser.Math.Linear(arm.targetX, player.x, 0.16);
-        arm.targetY = Phaser.Math.Linear(arm.targetY, player.y, 0.16);
+        const aim = this._aimNearPlayer(shoulder, player);
+        arm.targetX = Phaser.Math.Linear(arm.targetX, aim.x, 0.16);
+        arm.targetY = Phaser.Math.Linear(arm.targetY, aim.y, 0.16);
       }
       const t = 1 - Math.max(0, (arm.stateUntil - time) / this.reachMs);
-      // Overshoot slightly for a rubber-hose snap.
       const eased = Phaser.Math.Easing.Cubic.Out(Phaser.Math.Clamp(t, 0, 1));
       arm.reach = Math.min(1.08, eased * 1.08);
       if (time >= arm.stateUntil) {
@@ -337,14 +359,16 @@ class BossArms {
     } else if (arm.state === 'pinch') {
       arm.reach = 1;
       if (player && player.active) {
-        arm.targetX = Phaser.Math.Linear(arm.targetX, player.x, 0.08);
-        arm.targetY = Phaser.Math.Linear(arm.targetY, player.y, 0.08);
+        const aim = this._aimNearPlayer(shoulder, player);
+        arm.targetX = Phaser.Math.Linear(arm.targetX, aim.x, 0.08);
+        arm.targetY = Phaser.Math.Linear(arm.targetY, aim.y, 0.08);
       }
       if (!arm.firedOnPinch) {
         arm.firedOnPinch = true;
         this._fireMissile(arm, player);
       }
-      if (!arm.grabbed && player && player.active) {
+      // Optional grab — off by default so claws only threaten / fire missiles.
+      if (this.canGrab && !arm.grabbed && player && player.active) {
         const d = Phaser.Math.Distance.Between(arm.handX, arm.handY, player.x, player.y);
         if (d <= this.grabRadius) {
           arm.grabbed = true;
