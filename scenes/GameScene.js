@@ -26,6 +26,11 @@ class GameScene extends Phaser.Scene {
     );
     this.boss.setDepth(10);
 
+    // Horizontal sway across the screen (bullets track the moving boss).
+    this.bossHomeX = this.boss.x;
+    this.bossSwayAmplitude = bossCfg.swayAmplitude != null ? bossCfg.swayAmplitude : 240;
+    this.bossSwaySpeed = bossCfg.swaySpeed != null ? bossCfg.swaySpeed : 0.45;
+
     // Subtle idle bob so the paper boss feels alive
     this.tweens.add({
       targets: this.boss,
@@ -63,29 +68,42 @@ class GameScene extends Phaser.Scene {
       this._updateHitsLabel();
     });
 
+    // Main weapon: 'projectile' or 'laser' — toggled with L.
+    this.weapon = 'projectile';
+
     this.shooting = false;
     this.spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
     this.spaceKey.on('down', () => { this.shooting = true; });
-    this.spaceKey.on('up', () => { this.shooting = false; });
+    this.spaceKey.on('up', () => {
+      this.shooting = false;
+      if (!this.firing) this.laser.hide();
+    });
+
+    this.input.keyboard.on('keydown-L', () => {
+      this.weapon = this.weapon === 'projectile' ? 'laser' : 'projectile';
+      this.laser.hide();
+      this._updateShotLabel();
+    });
 
     // Number keys 1..9 switch projectile type (atlas frame order).
     const types = this.projectiles.getTypes();
     this.input.keyboard.on('keydown', (event) => {
       const n = parseInt(event.key, 10);
       if (n >= 1 && n <= types.length && this.projectiles.setType(types[n - 1])) {
+        this.weapon = 'projectile';
         this._updateShotLabel();
       }
     });
 
-    // Hold mouse / pointer for the laser beam
+    // Mouse / pointer fires the active weapon too
     this.firing = false;
     this.input.on('pointerdown', () => { this.firing = true; });
     this.input.on('pointerup', () => {
       this.firing = false;
-      this.laser.hide();
+      if (!this.shooting) this.laser.hide();
     });
 
-    this.add.text(12, 12, 'Arrows / WASD move · Space shoots · 1-4 swaps shot · Hold click for laser', {
+    this.add.text(12, 12, 'Arrows / WASD move · Space or click fires · L swaps weapon · 1-4 shot type', {
       fontFamily: 'Georgia, serif',
       fontSize: '14px',
       color: '#b8a890',
@@ -125,21 +143,29 @@ class GameScene extends Phaser.Scene {
     this.bossBullets.update(delta);
     this._checkBossHits();
 
-    if (this.shooting) {
-      // Spawn at the ship's nose, travelling straight up.
-      this.projectiles.fire(this.player.x, this.player.y - this.player.displayHeight * 0.5);
-    }
+    // Boss sways back and forth across the screen while it fires.
+    this.boss.x = this.bossHomeX + Math.sin((time / 1000) * this.bossSwaySpeed * Math.PI) * this.bossSwayAmplitude;
 
-    if (this.firing) {
-      // Beam from ship center to boss center; tip tracks every frame.
-      this.laser.update(this.player.x, this.player.y, this.boss.x, this.boss.y);
+    const triggerHeld = this.shooting || this.firing;
+    if (triggerHeld) {
+      if (this.weapon === 'laser') {
+        // Beam from ship center to boss center; tip tracks every frame.
+        this.laser.update(this.player.x, this.player.y, this.boss.x, this.boss.y);
+      } else {
+        // Spawn at the ship's nose, travelling straight up.
+        this.projectiles.fire(this.player.x, this.player.y - this.player.displayHeight * 0.5);
+      }
     }
   }
 
   _updateShotLabel() {
     if (!this.shotLabel) return;
+    if (this.weapon === 'laser') {
+      this.shotLabel.setText('Weapon: paper laser');
+      return;
+    }
     const type = this.projectiles.currentType;
-    this.shotLabel.setText(type ? `Shot: ${type}` : '');
+    this.shotLabel.setText(type ? `Shot: ${type}` : 'Shot: projectile');
   }
 
   _updateHitsLabel() {

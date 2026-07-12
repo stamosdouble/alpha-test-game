@@ -76,6 +76,9 @@ const GameConfig = {
     partsFolder: 'assets/boss_parts/',
     x: 400,
     y: 140,
+    /** Horizontal sway across the screen while firing. */
+    swayAmplitude: 240,
+    swaySpeed: 0.45,
   },
 };
 
