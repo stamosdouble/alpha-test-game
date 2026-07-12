@@ -29,6 +29,7 @@ const PaperTextures = {
 
     need(cfg.player?.key || 'player_ship', (s, k) => this.makeShip(s, k));
     need(cfg.projectile?.key || 'player_projectile', (s, k) => this.makeProjectile(s, k));
+    need(cfg.projectile?.atlasKey || 'projectiles', (s, k) => this.makeProjectileAtlas(s, k));
     need(cfg.sparks?.key || 'spark', (s, k) => this.makeSpark(s, k));
     need(cfg.laser?.beamKey || 'beam_segment', (s, k) => this.makeBeam(s, k));
     need(cfg.laser?.tipKey || 'impact_tip', (s, k) => this.makeTip(s, k));
@@ -104,6 +105,69 @@ const PaperTextures = {
     ctx.moveTo(22, 58); ctx.lineTo(8, 78); ctx.lineTo(28, 70); ctx.fill();
     ctx.beginPath();
     ctx.moveTo(74, 58); ctx.lineTo(88, 78); ctx.lineTo(68, 70); ctx.fill();
+
+    scene.textures.addCanvas(key, canvas);
+  },
+
+  makeProjectileAtlas(scene, key) {
+    // 4 frames of 128px, matching the layout in assets/player/projectiles.json
+    // so registerFrames() can attach the same frame names.
+    const frame = 128;
+    const canvas = document.createElement('canvas');
+    canvas.width = frame * 4;
+    canvas.height = frame;
+    const ctx = canvas.getContext('2d');
+
+    const drawDisc = (ox, outer, inner) => {
+      const paper = document.createElement('canvas');
+      paper.width = frame;
+      paper.height = frame;
+      this._paperFill(paper.getContext('2d'), frame, frame, outer, 10);
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(ox + 64, 64, 54, 0, Math.PI * 2);
+      ctx.clip();
+      ctx.drawImage(paper, ox, 0);
+      ctx.restore();
+
+      const paper2 = document.createElement('canvas');
+      paper2.width = frame;
+      paper2.height = frame;
+      this._paperFill(paper2.getContext('2d'), frame, frame, inner, 10);
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(ox + 61, 61, 34, 0, Math.PI * 2);
+      ctx.clip();
+      ctx.drawImage(paper2, ox, 0);
+      ctx.restore();
+    };
+
+    drawDisc(0, [238, 74, 63], [240, 197, 66]);
+    drawDisc(128, [70, 120, 190], [225, 235, 240]);
+    drawDisc(256, [90, 160, 90], [240, 197, 66]);
+
+    // Simple star for the fourth frame.
+    ctx.save();
+    ctx.translate(384 + 64, 66);
+    ctx.beginPath();
+    for (let i = 0; i < 10; i++) {
+      const ang = (i / 10) * Math.PI * 2 - Math.PI / 2;
+      const r = i % 2 === 0 ? 56 : 26;
+      ctx.lineTo(Math.cos(ang) * r, Math.sin(ang) * r);
+    }
+    ctx.closePath();
+    ctx.fillStyle = 'rgb(235, 140, 50)';
+    ctx.fill();
+    ctx.beginPath();
+    for (let i = 0; i < 10; i++) {
+      const ang = (i / 10) * Math.PI * 2 - Math.PI / 2;
+      const r = i % 2 === 0 ? 34 : 15;
+      ctx.lineTo(Math.cos(ang) * r, Math.sin(ang) * r);
+    }
+    ctx.closePath();
+    ctx.fillStyle = 'rgb(250, 225, 120)';
+    ctx.fill();
+    ctx.restore();
 
     scene.textures.addCanvas(key, canvas);
   },

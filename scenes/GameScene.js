@@ -54,6 +54,15 @@ class GameScene extends Phaser.Scene {
     this.spaceKey.on('down', () => { this.shooting = true; });
     this.spaceKey.on('up', () => { this.shooting = false; });
 
+    // Number keys 1..9 switch projectile type (atlas frame order).
+    const types = this.projectiles.getTypes();
+    this.input.keyboard.on('keydown', (event) => {
+      const n = parseInt(event.key, 10);
+      if (n >= 1 && n <= types.length && this.projectiles.setType(types[n - 1])) {
+        this._updateShotLabel();
+      }
+    });
+
     // Hold mouse / pointer for the laser beam
     this.firing = false;
     this.input.on('pointerdown', () => { this.firing = true; });
@@ -62,11 +71,18 @@ class GameScene extends Phaser.Scene {
       this.laser.hide();
     });
 
-    this.add.text(12, 12, 'Arrows / WASD move · Space shoots · Hold click for laser', {
+    this.add.text(12, 12, 'Arrows / WASD move · Space shoots · 1-4 swaps shot · Hold click for laser', {
       fontFamily: 'Georgia, serif',
       fontSize: '14px',
       color: '#b8a890',
     }).setDepth(100).setScrollFactor(0);
+
+    this.shotLabel = this.add.text(width - 12, 12, '', {
+      fontFamily: 'Georgia, serif',
+      fontSize: '13px',
+      color: '#d8cbb8',
+    }).setOrigin(1, 0).setDepth(100).setScrollFactor(0);
+    this._updateShotLabel();
 
     const footer = (data && data.usedEmbeddedOnly && window.location.protocol === 'file:')
       ? 'file:// mode — embedded placeholders. Use npm start to load /assets PNGs.'
@@ -96,6 +112,12 @@ class GameScene extends Phaser.Scene {
       // Beam from ship center to boss center; tip tracks every frame.
       this.laser.update(this.player.x, this.player.y, this.boss.x, this.boss.y);
     }
+  }
+
+  _updateShotLabel() {
+    if (!this.shotLabel) return;
+    const type = this.projectiles.currentType;
+    this.shotLabel.setText(type ? `Shot: ${type}` : '');
   }
 
   /** Pop sparks where projectiles strike the boss, then recycle the shot. */

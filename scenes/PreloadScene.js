@@ -72,6 +72,7 @@ class PreloadScene extends Phaser.Scene {
     (cfg.parallaxLayers || []).forEach((layer) => queue(layer.key, layer.path));
     queue(cfg.player.key, cfg.player.path);
     queue(cfg.projectile.key, cfg.projectile.path);
+    queue(cfg.projectile.atlasKey, cfg.projectile.atlasTexturePath);
     queue(cfg.sparks.key, cfg.sparks.path);
     queue(cfg.laser.beamKey, cfg.laser.beamPath);
     queue(cfg.laser.tipKey, cfg.laser.tipPath);
@@ -106,6 +107,9 @@ class PreloadScene extends Phaser.Scene {
 
     // Ultimate safety: procedural paper for any key still missing.
     const generated = (window.PaperTextures && PaperTextures.ensureAll(this)) || [];
+
+    // Attach atlas frame data (disk JSON preferred, embedded fallback).
+    Projectiles.registerFrames(this);
 
     const usedEmbeddedOnly =
       window.location.protocol === 'file:' || (diskApplied === 0 && this.diskSwaps.length > 0);

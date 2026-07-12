@@ -79,7 +79,7 @@ parallaxLayers: [
 | Laser segment | `assets/laser/beam_segment.png` | Small tileable strip |
 | Laser tip | `assets/laser/impact_tip.png` | Centered hotspot |
 | Player | `assets/player/ship.png` | Designed around center |
-| Projectile | `assets/player/projectile.png` | Centered paper disc; scale/speed in `js/config.js` |
+| Projectiles | `assets/player/projectiles.png` + `.json` | Texture atlas: one sheet, many designs. Add a frame to both files and it becomes selectable in-game (keys 1-9). `projectile.png` remains as single-image fallback |
 | Sparks | `assets/effects/spark.png` | Yellow triangle; burst tuning in `js/config.js` |
 | Backgrounds | `assets/background/*.png` | Prefer seamless / tileable |
 
