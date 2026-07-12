@@ -63,9 +63,11 @@ const GameConfig = {
     collectRadius: 42,
     /** Pellets collected to fill the meter. */
     meterMax: 8,
-    /** Full meter launches a homing blast at the boss. */
+    /** Full meter launches a giant homing missile at the boss. */
     blastDamage: 150,
-    blastSpeed: 340,
+    blastSpeed: 320,
+    blastScale: 2.6,
+    blastKey: 'giant_homing_missile',
   },
 
   minions: {
@@ -174,6 +176,10 @@ const GameConfig = {
       /** Coiled rest lengths — arms stretch elastically up to full screen. */
       restUpper: 70,
       restLower: 64,
+      /** Claw / head hit points — shoot the claw tips to disable an arm. */
+      maxHp: 100,
+      hitDamage: 5,
+      headHitRadius: 48,
       /** Shoulder mounts in unscaled boss-local space. */
       shoulders: [
         { x: -100, y: 40 },
