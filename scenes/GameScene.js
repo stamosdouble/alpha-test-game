@@ -271,6 +271,13 @@ class GameScene extends Phaser.Scene {
             onGrab: (x, y) => this._onGrabbedByArm(x, y),
             onMissileHit: (x, y) => this._onArmMissileHit(x, y),
           });
+          // Player shots can destroy claw-launched homing missiles.
+          this.bossArms.collideProjectiles(this.projectiles.group, {
+            onShotDown: (x, y) => {
+              this.sparks.burst(x, y);
+              this._registerComboHit();
+            },
+          });
         } else {
           this.bossArms.poseOnly(time, delta);
         }
