@@ -227,16 +227,19 @@ class GameScene extends Phaser.Scene {
       }
     });
 
-    const footer = (data && data.diskApplied > 0)
-      ? `Loaded ${data.diskApplied} files from /assets — swap PNGs and refresh`
-      : (data && data.usedFallbacks)
-        ? 'PNG load failed — showing paper fallbacks.'
-        : 'Swap PNGs in /assets, then refresh — no server restart needed';
+    const report = window.__assetReport || data || {};
+    const diskApplied = report.diskApplied || (report.loadedFromDisk && report.loadedFromDisk.length) || 0;
+    const usedFallbacks = (data && data.usedFallbacks) || (report.generated && report.generated.length > 0);
+    const footer = diskApplied > 0
+      ? `Loaded ${diskApplied} files from /assets — swap PNGs then Ctrl+Shift+R`
+      : usedFallbacks
+        ? 'PNG load failed — showing paper fallbacks (see console __assetReport)'
+        : 'Put PNGs in /assets beside index.html, then Ctrl+Shift+R';
 
     this.add.text(12, height - 28, footer, {
       fontFamily: 'Georgia, serif',
       fontSize: '12px',
-      color: (data && data.usedFallbacks) ? '#e8a060' : '#7a7060',
+      color: diskApplied > 0 ? '#8fbf8a' : '#e8a060',
     }).setDepth(100).setScrollFactor(0);
   }
 
