@@ -1,5 +1,5 @@
 /**
- * Phaser 3 entry.
+ * Phaser 3 entry — game canvas fills the browser window.
  *
  * Custom /assets PNGs:
  * - Prefer HTTP: run start.sh / start.bat / npm start, then refresh after swaps.
@@ -9,11 +9,16 @@
 (function boot() {
   const errorEl = document.getElementById('boot-error');
   const container = document.getElementById('game-container');
+  const hintEl = document.getElementById('fs-hint');
 
   function showBanner(title, detailHtml) {
     if (!errorEl) return;
     errorEl.style.display = 'block';
     errorEl.innerHTML = `<strong>${title}</strong>${detailHtml}`;
+    // Auto-hide tips so they don't sit over the fullscreen playfield forever.
+    setTimeout(() => {
+      if (errorEl) errorEl.style.display = 'none';
+    }, 10000);
   }
 
   if (typeof Phaser === 'undefined') {
@@ -45,17 +50,35 @@
     showBanner(
       'Opened as a local file — use Canvas mode for art swaps',
       `<p>Chrome blocks WebGL from reading PNGs next to <code>index.html</code>.
-       This build uses Canvas so your <code>/assets</code> swaps can show.</p>
-       <p><strong>Most reliable:</strong> double-click <code>start.bat</code> (Windows) or run
-       <code>./start.sh</code> / <code>npm start</code>, then open the localhost link and refresh after swaps.</p>`
-    );
-  } else {
-    showBanner(
-      'Local server — PNG swaps work on refresh',
-      `<p>Replace files under <code>/assets</code> (exact names), then <code>Ctrl+Shift+R</code>.
-       Splash shows how many disk files loaded. Console: <code>window.__assetReport</code>.</p>`
+       Prefer <code>start.bat</code> / <code>npm start</code> for art swaps.</p>`
     );
   }
+
+  function toggleBrowserFullscreen() {
+    const root = document.documentElement;
+    if (!document.fullscreenElement) {
+      const req = root.requestFullscreen || root.webkitRequestFullscreen;
+      if (req) req.call(root);
+    } else if (document.exitFullscreen) {
+      document.exitFullscreen();
+    } else if (document.webkitExitFullscreen) {
+      document.webkitExitFullscreen();
+    }
+  }
+
+  window.addEventListener('keydown', (e) => {
+    if (e.code === 'KeyF' && !e.repeat && !e.metaKey && !e.ctrlKey && !e.altKey) {
+      // Don't steal F when typing isn't a concern — no text fields in this game.
+      e.preventDefault();
+      toggleBrowserFullscreen();
+    }
+  });
+
+  document.addEventListener('fullscreenchange', () => {
+    if (hintEl) {
+      hintEl.textContent = document.fullscreenElement ? 'Esc · exit fullscreen' : 'F · fullscreen';
+    }
+  });
 
   const config = {
     type: renderType,
@@ -72,8 +95,13 @@
     },
     scene: [BootScene, PreloadScene, TitleScene, GameScene],
     scale: {
+      // Fill the browser window as large as possible while keeping 960×720.
       mode: Phaser.Scale.FIT,
       autoCenter: Phaser.Scale.CENTER_BOTH,
+      width: GameConfig.width,
+      height: GameConfig.height,
+      parent: 'game-container',
+      expandParent: true,
     },
     loader: {
       path: '',
@@ -83,5 +111,15 @@
 
   window.addEventListener('load', () => {
     window.game = new Phaser.Game(config);
+    // Ensure scale refreshes if the window/CSS settles after boot.
+    if (window.game && window.game.scale) {
+      window.game.scale.refresh();
+    }
+  });
+
+  window.addEventListener('resize', () => {
+    if (window.game && window.game.scale) {
+      window.game.scale.refresh();
+    }
   });
 })();
