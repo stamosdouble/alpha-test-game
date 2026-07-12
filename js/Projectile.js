@@ -111,13 +111,32 @@ class Projectiles {
    * @returns {boolean} true when a shot was fired
    */
   fire(x, y, angleRad = -Math.PI / 2) {
+    return this.fireVolley([{ x, y }], angleRad);
+  }
+
+  /**
+   * Fire one projectile from every point (e.g. both wing muzzles) as a
+   * single volley sharing one fire-rate cooldown.
+   * @param {{x:number, y:number}[]} points
+   * @param {number} [angleRad=-Math.PI/2]
+   * @returns {boolean} true when the volley was fired
+   */
+  fireVolley(points, angleRad = -Math.PI / 2) {
     const now = this.scene.time.now;
     if (now - this.lastFiredAt < this.fireRateMs) return false;
+    this.lastFiredAt = now;
 
+    let fired = false;
+    points.forEach((p) => {
+      if (this._spawnShot(p.x, p.y, angleRad)) fired = true;
+    });
+    return fired;
+  }
+
+  /** Spawn a single pooled shot (no cooldown check). */
+  _spawnShot(x, y, angleRad) {
     const shot = this.group.get(x, y);
     if (!shot) return false;
-
-    this.lastFiredAt = now;
 
     if (this.usingAtlas) {
       const types = this.getTypes();
