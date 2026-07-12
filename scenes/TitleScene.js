@@ -42,9 +42,11 @@ class TitleScene extends Phaser.Scene {
     }).setOrigin(0.5).setDepth(10);
 
     const statusColor = diskApplied > 0 ? '#8fbf8a' : '#e8a060';
+    const proto = (typeof location !== 'undefined' && location.protocol) || '';
+    const via = proto === 'file:' ? 'file' : 'server';
     const statusLine =
       diskApplied > 0
-        ? `Using ${diskApplied} file(s) from /assets`
+        ? `Using ${diskApplied} file(s) from /assets (${via})`
         : 'No /assets PNGs found — built-in placeholders';
     this.add.text(width / 2, height * 0.56, statusLine, {
       fontFamily: 'Georgia, "Times New Roman", serif',
@@ -56,7 +58,7 @@ class TitleScene extends Phaser.Scene {
       this.add.text(
         width / 2,
         height * 0.61,
-        'Put PNGs beside index.html (e.g. assets/player/ship.png), then Ctrl+Shift+R',
+        'Run start.bat / start.sh / npm start, put PNGs in assets/, then Ctrl+Shift+R',
         {
           fontFamily: 'Georgia, "Times New Roman", serif',
           fontSize: '12px',
@@ -67,6 +69,12 @@ class TitleScene extends Phaser.Scene {
       ).setOrigin(0.5).setDepth(10);
     } else if (failed.length > 0) {
       this.add.text(width / 2, height * 0.61, `${failed.length} path(s) missing — see console __assetReport`, {
+        fontFamily: 'Georgia, "Times New Roman", serif',
+        fontSize: '12px',
+        color: '#7a7060',
+      }).setOrigin(0.5).setDepth(10);
+    } else if (proto === 'file:') {
+      this.add.text(width / 2, height * 0.61, 'Tip: start.bat / npm start is more reliable than double-click', {
         fontFamily: 'Georgia, "Times New Roman", serif',
         fontSize: '12px',
         color: '#7a7060',

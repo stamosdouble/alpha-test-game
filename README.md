@@ -6,8 +6,17 @@ Landscape papercraft shmup with a hand-cut art workflow. Swap scanned paper PNGs
 
 Replace PNGs under `/assets` using the **same filenames** (e.g. `assets/player/ship.png`).
 
-- **Double-click `index.html`:** local `/assets` files load automatically. After a swap, hard-refresh (`Ctrl+Shift+R`).
-- **Or leave a server running once** (`npm start`) and just refresh the browser after each swap — you do **not** need to restart the server.
+**Recommended — local server (swap + refresh always works):**
+
+```bash
+npm start
+# or double-click start.bat (Windows) / run ./start.sh
+# → http://127.0.0.1:8080/  (leave that window open)
+```
+
+Then hard-refresh (`Ctrl+Shift+R`) after each PNG swap. Splash shows `Using N file(s) from /assets`.
+
+**Double-click `index.html`:** art swaps work in Canvas mode (Chrome WebGL cannot read sibling `file://` PNGs). Prefer the server if anything looks stale.
 
 ## Folder structure
 
