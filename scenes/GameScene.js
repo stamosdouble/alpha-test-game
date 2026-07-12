@@ -9,6 +9,7 @@ class GameScene extends Phaser.Scene {
 
   create(data) {
     const { width, height } = this.scale;
+    this.sceneData = data;
 
     // Safety net — never render Phaser's green __MISSING texture.
     PaperTextures.ensureAll(this);
@@ -18,27 +19,42 @@ class GameScene extends Phaser.Scene {
 
     // Boss assembled from part name list — drop PNGs into /assets/boss_parts/
     const bossCfg = GameConfig.boss;
+    const bossTargetY = bossCfg.y || 160;
     this.boss = new Boss(
       this,
       bossCfg.x || width / 2,
-      bossCfg.y || 140,
+      bossTargetY,
       GameConfig.bossParts
     );
     this.boss.setDepth(10);
+    this.boss.setScale(bossCfg.scale != null ? bossCfg.scale : 1.5);
 
     // Horizontal sway across the screen (bullets track the moving boss).
     this.bossHomeX = this.boss.x;
-    this.bossSwayAmplitude = bossCfg.swayAmplitude != null ? bossCfg.swayAmplitude : 240;
+    this.bossSwayAmplitude = bossCfg.swayAmplitude != null ? bossCfg.swayAmplitude : 200;
     this.bossSwaySpeed = bossCfg.swaySpeed != null ? bossCfg.swaySpeed : 0.45;
 
-    // Subtle idle bob so the paper boss feels alive
+    // Entrance: lower onto the screen from above, then start the fight.
+    this.bossEntranceDone = false;
+    this.boss.y = -this.boss.getBounds().height;
     this.tweens.add({
       targets: this.boss,
-      y: this.boss.y + 8,
-      duration: 2200,
-      yoyo: true,
-      repeat: -1,
-      ease: 'Sine.easeInOut',
+      y: bossTargetY,
+      duration: bossCfg.entranceMs || 2400,
+      ease: 'Sine.easeOut',
+      onComplete: () => {
+        this.bossEntranceDone = true;
+        this.swayStartTime = this.time.now;
+        // Subtle idle bob so the paper boss feels alive
+        this.tweens.add({
+          targets: this.boss,
+          y: bossTargetY + 8,
+          duration: 2200,
+          yoyo: true,
+          repeat: -1,
+          ease: 'Sine.easeInOut',
+        });
+      },
     });
 
     // Player with centered origin + organic sway
@@ -65,15 +81,25 @@ class GameScene extends Phaser.Scene {
     this.lastComboHitAt = 0;
     this.comboTimeoutMs = (GameConfig.combo && GameConfig.combo.timeoutMs) || 3000;
 
+    this.playerDead = false;
+    this.bossDefeated = false;
+    this.maxHits = (GameConfig.player && GameConfig.player.maxHits) || 6;
+    this.projectileDamage = (GameConfig.projectile && GameConfig.projectile.damage) || 50;
+
     this.physics.add.overlap(this.player, this.bossBullets.group, (player, bullet) => {
-      if (!bullet.active || player.isInvulnerable()) return;
+      if (!bullet.active || player.isInvulnerable() || this.playerDead) return;
       this.bossBullets.group.killAndHide(bullet);
       bullet.body.stop();
       this.sparks.burst(player.x, player.y);
-      player.onHit();
       this.hitsTaken += 1;
       this._breakCombo();
       this._updateHitsLabel();
+
+      if (this.hitsTaken >= this.maxHits) {
+        this._destroyPlayer();
+      } else {
+        player.onHit();
+      }
     });
 
     // Main weapon: 'projectile' or 'laser' — toggled with L.
@@ -137,12 +163,32 @@ class GameScene extends Phaser.Scene {
     }).setOrigin(1, 0).setDepth(100).setScrollFactor(0);
     this._updateHitsLabel();
 
-    this.comboLabel = this.add.text(width / 2, 52, '', {
+    this.comboLabel = this.add.text(width / 2, 64, '', {
       fontFamily: 'Georgia, serif',
       fontSize: '24px',
       color: '#f0c542',
     }).setOrigin(0.5, 0).setDepth(100).setScrollFactor(0);
     this._updateComboLabel();
+
+    // Boss health bar — paper strip that empties as damage lands.
+    const barW = 320;
+    this.add.rectangle(width / 2, 40, barW + 6, 20, 0x2a241c, 0.85)
+      .setDepth(100).setScrollFactor(0);
+    this.bossHpFill = this.add.rectangle(width / 2 - barW / 2, 40, barW, 12, 0xd05a46)
+      .setOrigin(0, 0.5).setDepth(101).setScrollFactor(0);
+    this.bossHpText = this.add.text(width / 2, 40, `${this.boss.hp} / ${this.boss.maxHp}`, {
+      fontFamily: 'Georgia, serif',
+      fontSize: '11px',
+      color: '#e8dcc6',
+    }).setOrigin(0.5).setDepth(102).setScrollFactor(0);
+    this._updateBossHpBar();
+
+    // Restart after victory or defeat.
+    this.input.keyboard.on('keydown-R', () => {
+      if (this.playerDead || this.bossDefeated) {
+        this.scene.restart(this.sceneData);
+      }
+    });
 
     const footer = (data && data.usedEmbeddedOnly && window.location.protocol === 'file:')
       ? 'file:// mode — embedded placeholders. Use npm start to load /assets PNGs.'
@@ -159,24 +205,37 @@ class GameScene extends Phaser.Scene {
 
   update(time, delta) {
     this.parallax.update(delta, 0.15, 1);
-    this.player.update(time, delta);
     this.projectiles.update(delta);
     this.bossBullets.update(delta);
-    this._checkBossHits();
 
-    // Boss sways back and forth across the screen while it fires.
-    this.boss.x = this.bossHomeX + Math.sin((time / 1000) * this.bossSwaySpeed * Math.PI) * this.bossSwayAmplitude;
+    if (!this.playerDead) {
+      this.player.update(time, delta);
+    }
+
+    if (!this.bossDefeated) {
+      this._checkBossHits();
+
+      // Boss sways back and forth once its entrance is complete.
+      if (this.bossEntranceDone) {
+        const t = (time - this.swayStartTime) / 1000;
+        this.boss.x = this.bossHomeX + Math.sin(t * this.bossSwaySpeed * Math.PI) * this.bossSwayAmplitude;
+      }
+    }
 
     // Combo decays if no hit lands within the timeout window.
     if (this.combo > 0 && time - this.lastComboHitAt > this.comboTimeoutMs) {
       this._breakCombo();
     }
 
-    const triggerHeld = this.shooting || this.firing;
+    const triggerHeld = (this.shooting || this.firing) && !this.playerDead;
     if (triggerHeld) {
       if (this.weapon === 'laser') {
-        // Beam from ship center to boss center; tip tracks every frame.
-        this.laser.update(this.player.x, this.player.y, this.boss.x, this.boss.y);
+        if (this.bossDefeated) {
+          this.laser.hide();
+        } else {
+          // Beam from ship center to boss center; tip tracks every frame.
+          this.laser.update(this.player.x, this.player.y, this.boss.x, this.boss.y);
+        }
       } else {
         // Spawn at the ship's nose, travelling straight up.
         this.projectiles.fire(this.player.x, this.player.y - this.player.displayHeight * 0.5);
@@ -200,7 +259,7 @@ class GameScene extends Phaser.Scene {
 
   _updateHitsLabel() {
     if (!this.hitsLabel) return;
-    this.hitsLabel.setText(`Hits: ${this.hitsTaken}`);
+    this.hitsLabel.setText(`Hull: ${Math.max(0, this.maxHits - this.hitsTaken)} / ${this.maxHits}`);
   }
 
   _updateComboLabel() {
@@ -236,7 +295,7 @@ class GameScene extends Phaser.Scene {
     this._updateComboLabel();
   }
 
-  /** Pop sparks where projectiles strike the boss, then recycle the shot. */
+  /** Pop sparks where projectiles strike the boss, damage it, chain combo. */
   _checkBossHits() {
     if (!this.boss || !this.boss.visible) return;
     const bounds = this.boss.getBounds();
@@ -248,8 +307,65 @@ class GameScene extends Phaser.Scene {
         this.projectiles.group.killAndHide(shot);
         shot.body.stop();
         this._registerComboHit();
+
+        const remaining = this.boss.takeDamage(this.projectileDamage);
+        this._updateBossHpBar();
+        if (remaining <= 0) {
+          this._defeatBoss();
+        }
       }
     });
+  }
+
+  _updateBossHpBar() {
+    if (!this.bossHpFill) return;
+    const ratio = this.boss.maxHp > 0 ? this.boss.hp / this.boss.maxHp : 0;
+    this.bossHpFill.width = 320 * ratio;
+    this.bossHpText.setText(`${this.boss.hp} / ${this.boss.maxHp}`);
+  }
+
+  _defeatBoss() {
+    if (this.bossDefeated) return;
+    this.bossDefeated = true;
+
+    // Paper confetti send-off, then hide the boss.
+    for (let i = 0; i < 6; i++) {
+      this.time.delayedCall(i * 120, () => {
+        this.sparks.burst(
+          this.boss.x + Phaser.Math.Between(-80, 80),
+          this.boss.y + Phaser.Math.Between(-60, 60)
+        );
+      });
+    }
+    this.time.delayedCall(700, () => this.boss.setVisible(false));
+    this.laser.hide();
+
+    this.add.text(this.scale.width / 2, this.scale.height / 2, 'Boss defeated!\nPress R to play again', {
+      fontFamily: 'Georgia, serif',
+      fontSize: '30px',
+      color: '#f0c542',
+      align: 'center',
+      lineSpacing: 8,
+    }).setOrigin(0.5).setDepth(110).setScrollFactor(0);
+  }
+
+  _destroyPlayer() {
+    if (this.playerDead) return;
+    this.playerDead = true;
+
+    this.sparks.burst(this.player.x, this.player.y);
+    this.sparks.burst(this.player.x - 10, this.player.y + 8);
+    this.sparks.burst(this.player.x + 10, this.player.y - 8);
+    this.player.setVisible(false);
+    this.laser.hide();
+
+    this.add.text(this.scale.width / 2, this.scale.height / 2, 'Ship destroyed!\nPress R to try again', {
+      fontFamily: 'Georgia, serif',
+      fontSize: '30px',
+      color: '#e8a060',
+      align: 'center',
+      lineSpacing: 8,
+    }).setOrigin(0.5).setDepth(110).setScrollFactor(0);
   }
 }
 

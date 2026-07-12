@@ -17,6 +17,10 @@ class Boss extends Phaser.GameObjects.Container {
     this.partSprites = {};
     this.partNames = partNames || (window.GameConfig && GameConfig.bossParts) || [];
 
+    const cfg = (window.GameConfig && GameConfig.boss) || {};
+    this.maxHp = cfg.maxHp || 1000;
+    this.hp = this.maxHp;
+
     scene.add.existing(this);
     this.assemble(this.partNames);
   }
@@ -89,6 +93,29 @@ class Boss extends Phaser.GameObjects.Container {
    */
   getPart(name) {
     return this.partSprites[name];
+  }
+
+  /**
+   * Apply damage, flash the paper parts, and report remaining HP.
+   * @param {number} amount
+   * @returns {number} hp remaining (never below 0)
+   */
+  takeDamage(amount) {
+    this.hp = Math.max(0, this.hp - amount);
+    this.flash();
+    return this.hp;
+  }
+
+  /** Brief white-hot flash across every part. */
+  flash(durationMs = 90) {
+    this.list.forEach((part) => {
+      if (part.setTintFill) part.setTintFill(0xfff1d6);
+    });
+    this.scene.time.delayedCall(durationMs, () => {
+      this.list.forEach((part) => {
+        if (part.clearTint) part.clearTint();
+      });
+    });
   }
 }
 
