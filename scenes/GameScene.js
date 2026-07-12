@@ -269,6 +269,7 @@ class GameScene extends Phaser.Scene {
         if (this.bossEntranceDone) {
           this.bossArms.update(time, delta, this.playerDead ? null : this.player, {
             onGrab: (x, y) => this._onGrabbedByArm(x, y),
+            onMissileHit: (x, y) => this._onArmMissileHit(x, y),
           });
         } else {
           this.bossArms.poseOnly(time, delta);
@@ -335,6 +336,13 @@ class GameScene extends Phaser.Scene {
         ease: 'Back.easeOut',
       });
     }
+  }
+
+  /** Homing missile launched from a claw tip. */
+  _onArmMissileHit(x, y) {
+    if (this.playerDead || this.bossDefeated) return;
+    this.sparks.burst(x, y);
+    this._applyPlayerDamage(x, y);
   }
 
   /**

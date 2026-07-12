@@ -166,18 +166,29 @@ const GameConfig = {
       enabled: true,
       segKey: 'boss_arm_seg',
       clawKey: 'boss_claw',
-      intervalMs: 4200,
-      reachMs: 760,
-      holdMs: 300,
-      retractMs: 540,
-      grabRadius: 44,
-      upperLen: 110,
-      lowerLen: 100,
+      intervalMs: 4000,
+      reachMs: 920,
+      holdMs: 320,
+      retractMs: 720,
+      grabRadius: 48,
+      /** Coiled rest lengths — arms stretch elastically up to full screen. */
+      restUpper: 70,
+      restLower: 64,
       /** Shoulder mounts in unscaled boss-local space. */
       shoulders: [
         { x: -100, y: 40 },
         { x: 100, y: 40 },
       ],
+      /** Homing missiles launched from each claw tip. */
+      missiles: {
+        enabled: true,
+        key: 'arm_missile',
+        intervalMs: 2600,
+        speed: 175,
+        turn: 0.09,
+        scale: 0.7,
+        hitRadius: 28,
+      },
     },
   },
 };
