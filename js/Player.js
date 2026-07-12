@@ -17,6 +17,7 @@ class Player extends Phaser.GameObjects.Sprite {
 
     // Center origin so rotation/spin happens around the sprite middle.
     this.setOrigin(0.5, 0.5);
+    this.setScale(options.scale != null ? options.scale : (cfg.scale != null ? cfg.scale : 1));
 
     this.baseX = x;
     this.baseY = y;
