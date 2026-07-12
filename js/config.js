@@ -43,6 +43,19 @@ const GameConfig = {
     spinSpeed: 4,
   },
 
+  bossBullets: {
+    key: 'enemy_bullet',
+    path: 'assets/effects/enemy_bullet.png',
+    speed: 130,
+    scale: 0.55,
+    waveIntervalMs: 1900,
+    ringCount: 18,
+    fanCount: 7,
+    fanSpreadRad: 0.7,
+    spiralCount: 24,
+    spiralDurationMs: 1100,
+  },
+
   sparks: {
     key: 'spark',
     path: 'assets/effects/spark.png',

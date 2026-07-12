@@ -31,6 +31,7 @@ const PaperTextures = {
     need(cfg.projectile?.key || 'player_projectile', (s, k) => this.makeProjectile(s, k));
     need(cfg.projectile?.atlasKey || 'projectiles', (s, k) => this.makeProjectileAtlas(s, k));
     need(cfg.sparks?.key || 'spark', (s, k) => this.makeSpark(s, k));
+    need(cfg.bossBullets?.key || 'enemy_bullet', (s, k) => this.makeEnemyBullet(s, k));
     need(cfg.laser?.beamKey || 'beam_segment', (s, k) => this.makeBeam(s, k));
     need(cfg.laser?.tipKey || 'impact_tip', (s, k) => this.makeTip(s, k));
 
@@ -168,6 +169,32 @@ const PaperTextures = {
     ctx.fillStyle = 'rgb(250, 225, 120)';
     ctx.fill();
     ctx.restore();
+
+    scene.textures.addCanvas(key, canvas);
+  },
+
+  makeEnemyBullet(scene, key) {
+    const size = 48;
+    const canvas = document.createElement('canvas');
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext('2d');
+
+    const paper = document.createElement('canvas');
+    paper.width = size;
+    paper.height = size;
+    this._paperFill(paper.getContext('2d'), size, size, [180, 45, 45], 12);
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(24, 24, 19, 0, Math.PI * 2);
+    ctx.clip();
+    ctx.drawImage(paper, 0, 0);
+    ctx.restore();
+
+    ctx.fillStyle = 'rgba(245, 235, 220, 0.95)';
+    ctx.beginPath();
+    ctx.arc(23, 23, 9, 0, Math.PI * 2);
+    ctx.fill();
 
     scene.textures.addCanvas(key, canvas);
   },
