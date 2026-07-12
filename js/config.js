@@ -169,24 +169,22 @@ const GameConfig = {
     maxHp: 1000,
     /** Descend-from-above entrance before the fight starts. */
     entranceMs: 2400,
-    /** Extra local-X push for wing_l / wing_r sprites (wider wingspan). */
-    wingSpanOffset: 72,
-    /** Muzzle offsets (unscaled, relative to boss center) at the wing-tip barrels. */
+    wingSpanOffset: 0,
+    /** Hull-flank gun hardpoints (near the outer rivets). */
     muzzles: [
-      { x: -188, y: 70 },
-      { x: 188, y: 70 },
+      { x: -64, y: 40 },
+      { x: 64, y: 40 },
     ],
-    /** Minion hangar exits — fighters launch from openings in each wing. */
+    /** Minion exits beside the rivet arm mounts. */
     wingExits: [
-      { x: -130, y: 48 },
-      { x: 130, y: 48 },
+      { x: -56, y: 28 },
+      { x: 56, y: 28 },
     ],
-    /** Visible-art hit ellipse (unscaled) — tighter than the container box so
-     *  impacts register on the paper, not the transparent padding. */
-    hitWidth: 420,
+    /** Visible-art hit ellipse — hull + rivets only. */
+    hitWidth: 200,
     hitHeight: 200,
     /** Horizontal sway across the screen while firing. */
-    swayAmplitude: 200,
+    swayAmplitude: 220,
     swaySpeed: 0.45,
     /** Mechanical grab-arms that reach down toward the player. */
     arms: {
@@ -208,10 +206,11 @@ const GameConfig = {
       maxHp: 100,
       hitDamage: 5,
       headHitRadius: 48,
-      /** Shoulder mounts in unscaled boss-local space. */
+      /** Shoulder mounts pinned to the outer hull rivets
+       *  (matches rivets.png spots at canvas 64,150 and 192,150). */
       shoulders: [
-        { x: -170, y: 42 },
-        { x: 170, y: 42 },
+        { x: -64, y: 22 },
+        { x: 64, y: 22 },
       ],
       /** Homing missiles launched from each claw tip. */
       missiles: {

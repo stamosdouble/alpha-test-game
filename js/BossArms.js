@@ -229,10 +229,15 @@ class BossArms {
       }
     }
 
-    g.fillStyle(0x3a2c20, 1);
-    g.fillCircle(shoulder.x, shoulder.y, 9);
+    // Rivet socket on the hull — arms read as bolted through the paper rivet.
+    g.fillStyle(0x2a2018, 1);
+    g.fillCircle(shoulder.x, shoulder.y, 14);
+    g.fillStyle(0x6b5540, 1);
+    g.fillCircle(shoulder.x, shoulder.y, 11);
     g.fillStyle(0xc4a484, 1);
-    g.fillCircle(shoulder.x, shoulder.y, 5);
+    g.fillCircle(shoulder.x, shoulder.y, 7);
+    g.fillStyle(0xe8dcc6, 0.9);
+    g.fillCircle(shoulder.x - 2, shoulder.y - 2, 2.5);
     g.fillStyle(0x3a2c20, 1);
     g.fillCircle(elbow.x, elbow.y, 8);
     g.fillStyle(0xd8b896, 1);
