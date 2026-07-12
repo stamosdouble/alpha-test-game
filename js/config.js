@@ -25,6 +25,15 @@ const GameConfig = {
     swaySpeed: 3.2,
   },
 
+  projectile: {
+    key: 'player_projectile',
+    path: 'assets/player/projectile.png',
+    speed: 420,
+    fireRateMs: 220,
+    scale: 0.35,
+    spinSpeed: 4,
+  },
+
   laser: {
     beamKey: 'beam_segment',
     beamPath: 'assets/laser/beam_segment.png',

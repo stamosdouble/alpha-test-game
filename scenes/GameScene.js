@@ -43,21 +43,23 @@ class GameScene extends Phaser.Scene {
     // Tiled paper laser (beam_segment + impact_tip)
     this.laser = new Laser(this);
 
-    this.firing = false;
-    this.input.keyboard.on('keydown-SPACE', () => { this.firing = true; });
-    this.input.keyboard.on('keyup-SPACE', () => {
-      this.firing = false;
-      this.laser.hide();
-    });
+    // Paper disc projectiles fired from the ship's nose
+    this.projectiles = new Projectiles(this);
 
-    // Hold mouse / pointer to fire as well
+    this.shooting = false;
+    this.spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+    this.spaceKey.on('down', () => { this.shooting = true; });
+    this.spaceKey.on('up', () => { this.shooting = false; });
+
+    // Hold mouse / pointer for the laser beam
+    this.firing = false;
     this.input.on('pointerdown', () => { this.firing = true; });
     this.input.on('pointerup', () => {
       this.firing = false;
       this.laser.hide();
     });
 
-    this.add.text(12, 12, 'Arrows / WASD move · Hold Space or click to fire laser', {
+    this.add.text(12, 12, 'Arrows / WASD move · Space shoots · Hold click for laser', {
       fontFamily: 'Georgia, serif',
       fontSize: '14px',
       color: '#b8a890',
@@ -79,6 +81,12 @@ class GameScene extends Phaser.Scene {
   update(time, delta) {
     this.parallax.update(delta, 0.15, 1);
     this.player.update(time, delta);
+    this.projectiles.update(delta);
+
+    if (this.shooting) {
+      // Spawn at the ship's nose, travelling straight up.
+      this.projectiles.fire(this.player.x, this.player.y - this.player.displayHeight * 0.5);
+    }
 
     if (this.firing) {
       // Beam from ship center to boss center; tip tracks every frame.

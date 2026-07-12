@@ -28,6 +28,7 @@ const PaperTextures = {
     });
 
     need(cfg.player?.key || 'player_ship', (s, k) => this.makeShip(s, k));
+    need(cfg.projectile?.key || 'player_projectile', (s, k) => this.makeProjectile(s, k));
     need(cfg.laser?.beamKey || 'beam_segment', (s, k) => this.makeBeam(s, k));
     need(cfg.laser?.tipKey || 'impact_tip', (s, k) => this.makeTip(s, k));
 
@@ -102,6 +103,39 @@ const PaperTextures = {
     ctx.moveTo(22, 58); ctx.lineTo(8, 78); ctx.lineTo(28, 70); ctx.fill();
     ctx.beginPath();
     ctx.moveTo(74, 58); ctx.lineTo(88, 78); ctx.lineTo(68, 70); ctx.fill();
+
+    scene.textures.addCanvas(key, canvas);
+  },
+
+  makeProjectile(scene, key) {
+    const size = 64;
+    const canvas = document.createElement('canvas');
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext('2d');
+
+    // Red paper disc with offset yellow center — matches the scanned art.
+    const red = document.createElement('canvas');
+    red.width = size;
+    red.height = size;
+    this._paperFill(red.getContext('2d'), size, size, [238, 74, 63], 10);
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(32, 32, 27, 0, Math.PI * 2);
+    ctx.clip();
+    ctx.drawImage(red, 0, 0);
+    ctx.restore();
+
+    const yellow = document.createElement('canvas');
+    yellow.width = size;
+    yellow.height = size;
+    this._paperFill(yellow.getContext('2d'), size, size, [240, 197, 66], 10);
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(30, 30, 17, 0, Math.PI * 2);
+    ctx.clip();
+    ctx.drawImage(yellow, 0, 0);
+    ctx.restore();
 
     scene.textures.addCanvas(key, canvas);
   },
