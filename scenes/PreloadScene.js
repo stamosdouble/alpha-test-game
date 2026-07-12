@@ -55,11 +55,38 @@ class PreloadScene extends Phaser.Scene {
 
   _assetUrl(path) {
     const base = typeof resolveAsset === 'function' ? resolveAsset(path) : path;
-    // Cache-bust so a PNG swap + refresh always picks up the new file.
-    // Skip query on file:// — some browsers reject local URLs with ?query.
-    if (window.location.protocol === 'file:') return base;
+    // Always cache-bust — Chrome accepts ?t= on file:// and it fixes stale PNGs.
     const sep = base.includes('?') ? '&' : '?';
     return `${base}${sep}t=${Date.now()}`;
+  }
+
+  /**
+   * Install an HTMLImageElement as a Phaser texture.
+   * On HTTP, copy through a canvas so WebGL gets a clean same-origin upload.
+   * On file://, keep the Image (main.js forces Canvas renderer for this case).
+   */
+  _installImage(key, img) {
+    if (this.textures.exists(key)) {
+      this.textures.remove(key);
+    }
+
+    const http = /^https?:/i.test(window.location.protocol);
+    if (http) {
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.naturalWidth || img.width;
+        canvas.height = img.naturalHeight || img.height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+        this.textures.addCanvas(key, canvas);
+        return true;
+      } catch (err) {
+        console.warn('[Preload] canvas install failed, trying addImage', key, err);
+      }
+    }
+
+    this.textures.addImage(key, img);
+    return true;
   }
 
   /**
@@ -72,20 +99,17 @@ class PreloadScene extends Phaser.Scene {
     return new Promise((resolve) => {
       const img = new Image();
       const isData = String(src).startsWith('data:');
-      // CORS only for http(s). Setting crossOrigin on file:// breaks loads.
+      // CORS only for http(s). Never set on file:// — breaks local loads.
       if (!isData && /^https?:/i.test(window.location.protocol)) {
         img.crossOrigin = 'anonymous';
       }
 
       img.onload = () => {
         try {
-          if (this.textures.exists(key)) {
-            this.textures.remove(key);
-          }
-          this.textures.addImage(key, img);
+          this._installImage(key, img);
           resolve(true);
         } catch (err) {
-          console.warn('[Preload] addImage failed for', key, err);
+          console.warn('[Preload] install failed for', key, err);
           resolve(false);
         }
       };
@@ -169,6 +193,8 @@ class PreloadScene extends Phaser.Scene {
       generated,
       protocol: window.location.protocol,
       href: window.location.href,
+      renderType: window.__PS_RENDER_TYPE || 'AUTO',
+      sample: this.loadedFromDisk.slice(0, 5),
     };
     window.__assetReport = report;
     console.log('[Paper Squadron] Asset report — check loadedFromDisk vs failedDisk', report);
