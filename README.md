@@ -24,7 +24,7 @@ Then hard-refresh (`Ctrl+Shift+R`) after each PNG swap. Splash shows `Using N fi
 /
 ├── index.html
 ├── assets/
-│   ├── boss_parts/     # hull.png, wing_l.png, wing_r.png, rivets.png, …
+│   ├── boss_parts/     # hull.png, wing_l.png, wing_r.png, rivets.png, arm_seg.png, arm_claw.png, …
 │   ├── laser/          # beam_segment.png, impact_tip.png
 │   ├── player/         # ship.png
 │   └── background/     # layer_far.png, layer_mid.png, layer_near.png
@@ -89,6 +89,9 @@ parallaxLayers: [
 | Power pellets | `assets/effects/power_pellet.png` | Collectible white pellets that fill the POWER meter (homing blast when full) |
 | Minion ships | `assets/effects/minion_ship.png` | Little fighters launched from boss wingtips; die in one hit |
 | Green bullets | `assets/effects/green_bullet.png` | Projectiles fired by minion ships |
+| Arm segment | `assets/boss_parts/arm_seg.png` | Brass tube for elastic grab-arms (~36×96; oriented along +Y) |
+| Arm claw | `assets/boss_parts/arm_claw.png` | Pincer tip (~64×64; wrist hub near top center) |
+| Arm missile | `assets/effects/arm_missile.png` | Homing shot from claw tips (~28×48; nose toward +Y) |
 | Backgrounds | `assets/background/*.png` | Prefer seamless / tileable |
 
 Placeholder PNGs are included so the skeleton runs immediately. Replace them with your high-resolution scans using the same filenames (or update paths in `js/config.js` only).

@@ -171,11 +171,14 @@ const GameConfig = {
     /** Horizontal sway across the screen while firing. */
     swayAmplitude: 260,
     swaySpeed: 0.45,
-    /** Mechanical grab-arms that reach down toward the player. */
+    /** Mechanical grab-arms that reach down toward the player.
+     *  Swap PNGs at the paths below (same keys); procedural fallbacks remain. */
     arms: {
       enabled: true,
       segKey: 'boss_arm_seg',
+      segPath: 'assets/boss_parts/arm_seg.png',
       clawKey: 'boss_claw',
+      clawPath: 'assets/boss_parts/arm_claw.png',
       intervalMs: 4000,
       reachMs: 920,
       holdMs: 320,
@@ -200,6 +203,7 @@ const GameConfig = {
       missiles: {
         enabled: true,
         key: 'arm_missile',
+        path: 'assets/effects/arm_missile.png',
         intervalMs: 2600,
         speed: 175,
         turn: 0.09,
