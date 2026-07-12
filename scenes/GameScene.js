@@ -11,6 +11,25 @@ class GameScene extends Phaser.Scene {
     const { width, height } = this.scale;
     this.sceneData = data;
 
+    // Phaser reuses this scene instance on restart — drop stale UI refs first.
+    this.shotLabel = null;
+    this.hitsLabel = null;
+    this.playerHpFill = null;
+    this.playerHpText = null;
+    this.shieldLabel = null;
+    this.powerFill = null;
+    this.powerLabel = null;
+    this.comboLabel = null;
+    this.bossHpFill = null;
+    this.bossHpText = null;
+    this.laser = null;
+    this.bossArms = null;
+    this.minions = null;
+    this.shield = null;
+    this.powerPellets = null;
+    this.bossBullets = null;
+    this.homingBlasts = [];
+
     // Safety net — never render Phaser's green __MISSING texture.
     PaperTextures.ensureAll(this);
 
@@ -182,7 +201,6 @@ class GameScene extends Phaser.Scene {
       fontSize: '13px',
       color: '#e8a060',
     }).setOrigin(1, 0).setDepth(100).setScrollFactor(0);
-    this._updateHitsLabel();
 
     // Player hull meter — bottom center of the playfield.
     const pBarW = Math.min(300, width - 140);
@@ -196,6 +214,8 @@ class GameScene extends Phaser.Scene {
       fontSize: '11px',
       color: '#e8dcc6',
     }).setOrigin(0.5).setDepth(102).setScrollFactor(0);
+    // Hits label + hull bar after both exist (restart reuses this scene instance).
+    this._updateHitsLabel();
     this._updatePlayerHpBar();
 
     this.shieldLabel = this.add.text(width - 12, 52, '', {
@@ -427,7 +447,7 @@ class GameScene extends Phaser.Scene {
   }
 
   _updateShotLabel() {
-    if (!this.shotLabel) return;
+    if (!this.shotLabel || !this.shotLabel.scene) return;
     const time = this.time ? this.time.now : 0;
     const cooling = time < this.laserCooldownUntil;
     let laserStatus;
@@ -439,11 +459,11 @@ class GameScene extends Phaser.Scene {
       laserStatus = `Laser ${fuelSec}s`;
     }
 
-    if (this.projectiles.randomize) {
+    if (this.projectiles && this.projectiles.randomize) {
       this.shotLabel.setText(`Shot: random · ${laserStatus}`);
       return;
     }
-    const type = this.projectiles.currentType;
+    const type = this.projectiles && this.projectiles.currentType;
     const shot = type ? `Shot: ${type}` : 'Shot: projectile';
     this.shotLabel.setText(`${shot} · ${laserStatus}`);
   }
@@ -454,17 +474,17 @@ class GameScene extends Phaser.Scene {
    */
   _tryFireLaser(time, delta) {
     if (this.bossDefeated || !this.boss || !this.boss.visible) {
-      this.laser.hide();
+      if (this.laser) this.laser.hide();
       return;
     }
 
     if (time < this.laserCooldownUntil) {
-      this.laser.hide();
+      if (this.laser) this.laser.hide();
       return;
     }
 
     if (this.laserFuelMs <= 0) {
-      this.laser.hide();
+      if (this.laser) this.laser.hide();
       this.laserCooldownUntil = time + this.laserCooldownMs;
       this.laserFuelMs = this.laserActiveMs;
       this._updateShotLabel();
@@ -505,27 +525,28 @@ class GameScene extends Phaser.Scene {
   }
 
   _updateHitsLabel() {
-    if (!this.hitsLabel) return;
+    if (!this.hitsLabel || !this.hitsLabel.scene) return;
     const left = Math.max(0, this.maxHits - this.hitsTaken);
     this.hitsLabel.setText(`Hull: ${left} / ${this.maxHits}`);
     this._updatePlayerHpBar();
   }
 
   _updatePlayerHpBar() {
-    if (!this.playerHpFill) return;
+    // Scene restart reuses this instance — ignore destroyed leftovers from the prior run.
+    if (!this.playerHpFill || !this.playerHpFill.scene) return;
     const left = Math.max(0, this.maxHits - this.hitsTaken);
     const ratio = this.maxHits > 0 ? left / this.maxHits : 0;
     this.playerHpFill.width = this.playerHpBarW * ratio;
     // Green → amber → red as hull drops.
     const color = ratio > 0.55 ? 0x7dcea0 : ratio > 0.25 ? 0xe8a060 : 0xd05a46;
     this.playerHpFill.setFillStyle(color);
-    if (this.playerHpText) {
+    if (this.playerHpText && this.playerHpText.scene) {
       this.playerHpText.setText(`HULL  ${left} / ${this.maxHits}`);
     }
   }
 
   _updateComboLabel() {
-    if (!this.comboLabel) return;
+    if (!this.comboLabel || !this.comboLabel.scene) return;
     if (this.combo >= 2) {
       this.comboLabel.setText(`Combo x${this.combo}`);
     } else {
@@ -540,7 +561,7 @@ class GameScene extends Phaser.Scene {
     this._updateComboLabel();
 
     // Quick pulse so building the chain feels punchy.
-    if (this.combo >= 2) {
+    if (this.combo >= 2 && this.comboLabel && this.comboLabel.scene) {
       this.comboLabel.setScale(1.35);
       this.tweens.add({
         targets: this.comboLabel,
@@ -558,19 +579,19 @@ class GameScene extends Phaser.Scene {
   }
 
   _updateShieldLabel() {
-    if (!this.shieldLabel) return;
+    if (!this.shieldLabel || !this.shieldLabel.scene) return;
     const text = this.shield.isActive() ? `Shield: ${this.shield.hitsLeft} / ${this.shield.maxHits}` : '';
     if (this.shieldLabel.text !== text) this.shieldLabel.setText(text);
   }
 
   _updatePowerMeter() {
-    if (!this.powerFill) return;
+    if (!this.powerFill || !this.powerFill.scene) return;
     const ratio = this.powerCharge / this.powerMax;
     const h = Math.max(2, this.powerBarH * ratio);
     // setSize is required — assigning .height alone can leave Phaser rectangles stale.
     this.powerFill.setSize(10, h);
     this.powerFill.setDisplaySize(10, h);
-    if (this.powerLabel) {
+    if (this.powerLabel && this.powerLabel.scene) {
       this.powerLabel.setText(this.powerCharge > 0 ? `${this.powerCharge}/${this.powerMax}` : 'POWER');
     }
   }
@@ -685,10 +706,12 @@ class GameScene extends Phaser.Scene {
   }
 
   _updateBossHpBar() {
-    if (!this.bossHpFill) return;
+    if (!this.bossHpFill || !this.bossHpFill.scene) return;
     const ratio = this.boss.maxHp > 0 ? this.boss.hp / this.boss.maxHp : 0;
     this.bossHpFill.width = this.bossHpBarW * ratio;
-    this.bossHpText.setText(`${this.boss.hp} / ${this.boss.maxHp}`);
+    if (this.bossHpText && this.bossHpText.scene) {
+      this.bossHpText.setText(`${this.boss.hp} / ${this.boss.maxHp}`);
+    }
   }
 
   _onRestartKey() {
@@ -777,6 +800,27 @@ class GameScene extends Phaser.Scene {
 
     try { this.tweens.killAll(); } catch (e) { /* */ }
     try { this.time.removeAllEvents(); } catch (e) { /* */ }
+
+    // Drop UI refs so the next create() cannot touch destroyed Text canvases.
+    this.shotLabel = null;
+    this.hitsLabel = null;
+    this.playerHpFill = null;
+    this.playerHpText = null;
+    this.shieldLabel = null;
+    this.powerFill = null;
+    this.powerLabel = null;
+    this.comboLabel = null;
+    this.bossHpFill = null;
+    this.bossHpText = null;
+    this.laser = null;
+    this.bossArms = null;
+    this.minions = null;
+    this.shield = null;
+    this.powerPellets = null;
+    this.bossBullets = null;
+    this.homingBlasts = [];
+    this.player = null;
+    this.boss = null;
   }
 
   _defeatBoss() {
