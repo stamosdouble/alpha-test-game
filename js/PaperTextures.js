@@ -33,6 +33,8 @@ const PaperTextures = {
     need(cfg.sparks?.key || 'spark', (s, k) => this.makeSpark(s, k));
     need(cfg.bossBullets?.key || 'enemy_bullet', (s, k) => this.makeEnemyBullet(s, k));
     need(cfg.shield?.key || 'shield_orb', (s, k) => this.makeShieldOrb(s, k));
+    need(cfg.shield?.ringKey || 'shield_ring', (s, k) => this.makeShieldRing(s, k));
+    need(cfg.power?.pelletKey || 'power_pellet', (s, k) => this.makePowerPellet(s, k));
     need(cfg.laser?.beamKey || 'beam_segment', (s, k) => this.makeBeam(s, k));
     need(cfg.laser?.tipKey || 'impact_tip', (s, k) => this.makeTip(s, k));
 
@@ -195,6 +197,55 @@ const PaperTextures = {
     scene.textures.addCanvas(key, canvas);
   },
 
+  makeShieldRing(scene, key) {
+    const size = 160;
+    const canvas = document.createElement('canvas');
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext('2d');
+
+    const paper = document.createElement('canvas');
+    paper.width = size;
+    paper.height = size;
+    this._paperFill(paper.getContext('2d'), size, size, [240, 197, 66], 12);
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(80, 80, 70, 0, Math.PI * 2);
+    ctx.arc(80, 80, 54, 0, Math.PI * 2, true);
+    ctx.clip('evenodd');
+    ctx.drawImage(paper, 0, 0);
+    ctx.restore();
+
+    scene.textures.addCanvas(key, canvas);
+  },
+
+  makePowerPellet(scene, key) {
+    const size = 40;
+    const canvas = document.createElement('canvas');
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext('2d');
+
+    const paper = document.createElement('canvas');
+    paper.width = size;
+    paper.height = size;
+    this._paperFill(paper.getContext('2d'), size, size, [248, 244, 236], 8);
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(20, 20, 15, 0, Math.PI * 2);
+    ctx.clip();
+    ctx.drawImage(paper, 0, 0);
+    ctx.restore();
+
+    ctx.fillStyle = 'rgba(215, 208, 195, 0.9)';
+    ctx.beginPath();
+    ctx.arc(19, 19, 7, 0, Math.PI * 2);
+    ctx.fill();
+
+    scene.textures.addCanvas(key, canvas);
+  },
+
   makeEnemyBullet(scene, key) {
     const size = 48;
     const canvas = document.createElement('canvas');
@@ -344,10 +395,11 @@ const PaperTextures = {
       this._paperFill(paper.getContext('2d'), size, size, [195, 175, 140], 14);
       ctx.save();
       ctx.beginPath();
+      // Long swept wings reaching toward the canvas edge.
       if (left) {
-        ctx.moveTo(120, 70); ctx.lineTo(120, 190); ctx.lineTo(20, 200); ctx.lineTo(35, 130); ctx.lineTo(70, 60);
+        ctx.moveTo(124, 80); ctx.lineTo(124, 192); ctx.lineTo(8, 214); ctx.lineTo(4, 172); ctx.lineTo(16, 136); ctx.lineTo(54, 66);
       } else {
-        ctx.moveTo(136, 70); ctx.lineTo(136, 190); ctx.lineTo(236, 200); ctx.lineTo(221, 130); ctx.lineTo(186, 60);
+        ctx.moveTo(132, 80); ctx.lineTo(132, 192); ctx.lineTo(248, 214); ctx.lineTo(252, 172); ctx.lineTo(240, 136); ctx.lineTo(202, 66);
       }
       ctx.closePath();
       ctx.clip();

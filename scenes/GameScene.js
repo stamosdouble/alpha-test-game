@@ -70,8 +70,28 @@ class GameScene extends Phaser.Scene {
     // Yellow triangle sparks on projectile impact
     this.sparks = new Sparks(this);
 
-    // Shield power-up ("S" token → orbiting yellow paper circles)
+    // Shield power-up ("S" token → flickering ring around the ship)
     this.shield = new Shield(this);
+
+    // Collectible white pellets from the boss → power meter → homing blast
+    this.powerPellets = new PowerPellets(this);
+    this.powerCfg = GameConfig.power || {};
+    this.powerCharge = 0;
+    this.powerMax = this.powerCfg.meterMax || 12;
+    this.homingBlasts = [];
+
+    this.physics.add.overlap(this.player, this.powerPellets.group, (player, pellet) => {
+      if (!pellet.active || this.playerDead) return;
+      this.powerPellets.group.killAndHide(pellet);
+      pellet.body.stop();
+      this.powerCharge = Math.min(this.powerMax, this.powerCharge + 1);
+      this._updatePowerMeter();
+      if (this.powerCharge >= this.powerMax) {
+        this.powerCharge = 0;
+        this._updatePowerMeter();
+        this._launchHomingBlast();
+      }
+    });
 
     // Bullet-hell waves from the boss (rings, aimed fans, spirals)
     this.bossBullets = new BossBullets(this);
@@ -184,6 +204,21 @@ class GameScene extends Phaser.Scene {
     }).setOrigin(1, 0).setDepth(100).setScrollFactor(0);
     this._updateShieldLabel();
 
+    // Power meter — vertical bar on the right; fills as pellets are collected.
+    this.powerBarH = 180;
+    const barX = width - 26;
+    const barBottom = height - 70;
+    this.add.rectangle(barX, barBottom - this.powerBarH / 2, 18, this.powerBarH + 8, 0x2a241c, 0.85)
+      .setDepth(100).setScrollFactor(0);
+    this.powerFill = this.add.rectangle(barX, barBottom, 10, 1, 0xf8f4ec)
+      .setOrigin(0.5, 1).setDepth(101).setScrollFactor(0);
+    this.add.text(barX, barBottom + 10, 'POWER', {
+      fontFamily: 'Georgia, serif',
+      fontSize: '10px',
+      color: '#d8cbb8',
+    }).setOrigin(0.5, 0).setDepth(101).setScrollFactor(0);
+    this._updatePowerMeter();
+
     this.comboLabel = this.add.text(width / 2, 64, '', {
       fontFamily: 'Georgia, serif',
       fontSize: '24px',
@@ -265,6 +300,8 @@ class GameScene extends Phaser.Scene {
 
     this.shield.update(time, delta);
     this._updateShieldLabel();
+    this.powerPellets.update(delta);
+    this._updateHomingBlasts(delta);
   }
 
   _updateShotLabel() {
@@ -323,6 +360,72 @@ class GameScene extends Phaser.Scene {
     if (!this.shieldLabel) return;
     const text = this.shield.isActive() ? `Shield: ${this.shield.hitsLeft} / ${this.shield.maxHits}` : '';
     if (this.shieldLabel.text !== text) this.shieldLabel.setText(text);
+  }
+
+  _updatePowerMeter() {
+    if (!this.powerFill) return;
+    const ratio = this.powerCharge / this.powerMax;
+    this.powerFill.height = Math.max(1, this.powerBarH * ratio);
+  }
+
+  /** Full meter: launch a big homing star that seeks the boss. */
+  _launchHomingBlast() {
+    if (this.bossDefeated || this.playerDead) return;
+
+    const atlasKey = GameConfig.projectile.atlasKey;
+    const blast = (this.textures.exists(atlasKey) && this.textures.get(atlasKey).has('star_orange'))
+      ? this.add.image(this.player.x, this.player.y - 20, atlasKey, 'star_orange')
+      : this.add.image(this.player.x, this.player.y - 20, GameConfig.projectile.key);
+
+    blast.setScale(0.85);
+    blast.setDepth(30);
+    blast.vx = 0;
+    blast.vy = -(this.powerCfg.blastSpeed || 340);
+    this.homingBlasts.push(blast);
+  }
+
+  _updateHomingBlasts(delta) {
+    if (this.homingBlasts.length === 0) return;
+    const dt = delta / 1000;
+    const speed = this.powerCfg.blastSpeed || 340;
+
+    this.homingBlasts = this.homingBlasts.filter((blast) => {
+      if (this.bossDefeated || !this.boss.visible) {
+        blast.destroy();
+        return false;
+      }
+
+      // Steer toward the boss — velocity eases onto the intercept course.
+      const dx = this.boss.x - blast.x;
+      const dy = this.boss.y - blast.y;
+      const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+      blast.vx = Phaser.Math.Linear(blast.vx, (dx / dist) * speed, 0.09);
+      blast.vy = Phaser.Math.Linear(blast.vy, (dy / dist) * speed, 0.09);
+      blast.x += blast.vx * dt;
+      blast.y += blast.vy * dt;
+      blast.rotation += 7 * dt;
+
+      // Impact against the same visible-art ellipse as regular shots.
+      const bossCfg = GameConfig.boss;
+      const hw = ((bossCfg.hitWidth || 245) / 2) * this.boss.scaleX;
+      const hh = ((bossCfg.hitHeight || 185) / 2) * this.boss.scaleY;
+      const ex = blast.x - this.boss.x;
+      const ey = blast.y - this.boss.y;
+      if ((ex * ex) / (hw * hw) + (ey * ey) / (hh * hh) <= 1) {
+        for (let i = 0; i < 3; i++) {
+          this.sparks.burst(
+            blast.x + Phaser.Math.Between(-24, 24),
+            blast.y + Phaser.Math.Between(-24, 24)
+          );
+        }
+        const remaining = this.boss.takeDamage(this.powerCfg.blastDamage || 150);
+        this._updateBossHpBar();
+        if (remaining <= 0) this._defeatBoss();
+        blast.destroy();
+        return false;
+      }
+      return true;
+    });
   }
 
   /** Pop sparks where projectiles strike the boss, damage it, chain combo. */
