@@ -50,6 +50,12 @@ class PreloadScene extends Phaser.Scene {
     (cfg.bossParts || []).forEach((name) => {
       add(`boss_part_${name}`, `${cfg.boss.partsFolder}${name}.png`);
     });
+    const arms = cfg.boss && cfg.boss.arms;
+    if (arms) {
+      add(arms.segKey, arms.segPath);
+      add(arms.clawKey, arms.clawPath);
+      if (arms.missiles) add(arms.missiles.key, arms.missiles.path);
+    }
     return entries;
   }
 

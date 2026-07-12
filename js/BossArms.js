@@ -4,9 +4,9 @@
  * from each claw tip.
  *
  * Art keys (procedural by default):
- *   boss_arm_seg  — brass tube segment
- *   boss_claw     — open pincer
- *   arm_missile   — homing missile (falls back to enemy_bullet)
+ *   boss_arm_seg  — brass tube segment (assets/boss_parts/arm_seg.png)
+ *   boss_claw     — open pincer (assets/boss_parts/arm_claw.png)
+ *   arm_missile   — homing missile (assets/effects/arm_missile.png)
  */
 class BossArms {
   /**
