@@ -139,12 +139,12 @@ class Boss extends Phaser.GameObjects.Container {
 
   /**
    * World-space muzzle positions (config offsets scaled with the boss).
-   * Falls back to the boss center when no muzzles are configured.
+   * Boss bullets spawn from these tips only — never from the hull center.
    * @returns {{x:number, y:number}[]}
    */
   getMuzzles() {
     const cfg = (window.GameConfig && GameConfig.boss) || {};
-    const offsets = cfg.muzzles && cfg.muzzles.length ? cfg.muzzles : [{ x: 0, y: 0 }];
+    const offsets = cfg.muzzles && cfg.muzzles.length ? cfg.muzzles : [];
     return offsets.map((m) => ({
       x: this.x + m.x * this.scaleX,
       y: this.y + m.y * this.scaleY,
