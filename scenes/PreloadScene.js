@@ -120,7 +120,7 @@ class PreloadScene extends Phaser.Scene {
     const usedEmbeddedOnly =
       window.location.protocol === 'file:' || (diskApplied === 0 && this.diskSwaps.length > 0);
 
-    this.scene.start('GameScene', {
+    this.scene.start('TitleScene', {
       usedFallbacks: generated.length > 0,
       usedEmbeddedOnly,
       diskApplied,

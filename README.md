@@ -1,10 +1,12 @@
-# Papercraft Shooter — Phaser 3 Skeleton
+# Paper Squadron
 
-Asset-driven 2D top-down shooter scaffold with a hand-cut papercraft workflow. Swap scanned paper PNGs into `/assets` without editing game logic.
+Vertical arcade shmup (19XX-style orientation) with a hand-cut papercraft workflow. Swap scanned paper PNGs into `/assets` without editing game logic.
 
 ## Quick start
 
 **Double-clicking `index.html` works** — embedded paper placeholders load via data URIs (no server required).
+
+Splash screen shows **Paper Squadron** — press **Enter** (or click) to start.
 
 To use scanned PNGs from the `/assets` folder, serve the project root over HTTP:
 
@@ -14,7 +16,7 @@ npm start
 # or: python3 -m http.server 8080
 ```
 
-Open the printed URL, then use **Arrows / WASD** to move and **hold Space or click** to fire the tiled paper laser.
+Open the printed URL, then use **Arrows / WASD** to move and **hold Space or click** to fire.
 
 ## Folder structure
 

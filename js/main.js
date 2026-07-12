@@ -43,7 +43,7 @@
         debug: false,
       },
     },
-    scene: [BootScene, PreloadScene, GameScene],
+    scene: [BootScene, PreloadScene, TitleScene, GameScene],
     scale: {
       mode: Phaser.Scale.FIT,
       autoCenter: Phaser.Scale.CENTER_BOTH,
