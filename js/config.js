@@ -88,8 +88,8 @@ const GameConfig = {
     maxAlive: 6,
     scale: 0.85,
     speed: 90,
-    /** Minions dive only — all enemy bullets come from boss muzzles. */
-    canShoot: false,
+    /** Minions fire their own green shots; boss bullet-hell stays muzzle-only. */
+    canShoot: true,
     fireRateMs: 1100,
     /** ~10% faster than the original 187. */
     bulletSpeed: 206,

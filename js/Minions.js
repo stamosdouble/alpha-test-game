@@ -20,10 +20,10 @@ class Minions {
     this.fireRateMs = options.fireRateMs != null ? options.fireRateMs : (cfg.fireRateMs || 1100);
     this.bulletSpeed = options.bulletSpeed != null ? options.bulletSpeed : (cfg.bulletSpeed || 170);
     this.bulletScale = options.bulletScale != null ? options.bulletScale : (cfg.bulletScale || 0.7);
-    /** When false, minions dive only — all enemy bullets come from boss muzzles. */
+    /** When false, minions dive only. Default true — they still shoot green bullets. */
     this.canShoot = options.canShoot != null
       ? !!options.canShoot
-      : (cfg.canShoot != null ? !!cfg.canShoot : false);
+      : (cfg.canShoot != null ? !!cfg.canShoot : true);
 
     this.group = scene.physics.add.group({
       defaultKey: this.key,

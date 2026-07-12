@@ -89,9 +89,9 @@ parallaxLayers: [
 | Shield orb | `assets/effects/shield_orb.png` | "S" pickup token; tuning under `shield` in `js/config.js` |
 | Shield ring | `assets/effects/shield_ring.png` | Flickering ring that circles the shielded ship |
 | Power pellets | `assets/effects/power_pellet.png` | Collectible white pellets that fill the POWER meter (homing blast when full) |
-| Minion ships | `assets/effects/minion_ship.png` | Fighters that pop out of hangar bays; dive only (no shots) |
+| Minion ships | `assets/effects/minion_ship.png` | Fighters that pop out of hangar bays; they can still shoot |
 | Boss wings | `assets/boss_parts/wing_l.png` / `wing_r.png` | Long span with rivets + propellers; minion exits via `boss.wingExits` |
-| Green bullets | `assets/effects/green_bullet.png` | Unused while `minions.canShoot` is false |
+| Green bullets | `assets/effects/green_bullet.png` | Projectiles fired by minion ships |
 | Backgrounds | `assets/background/*.png` | Prefer seamless / tileable |
 
 Placeholder PNGs are included so the skeleton runs immediately. Replace them with your high-resolution scans using the same filenames (or update paths in `js/config.js` only).
