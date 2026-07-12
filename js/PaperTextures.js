@@ -387,6 +387,7 @@ const PaperTextures = {
     scene.textures.addCanvas(key, canvas);
   },
 
+  /** Flaming red / yellow paper strip for the tiled laser beam. */
   makeBeam(scene, key) {
     const w = 16;
     const h = 32;
@@ -394,26 +395,113 @@ const PaperTextures = {
     canvas.width = w;
     canvas.height = h;
     const ctx = canvas.getContext('2d');
-    this._paperFill(ctx, w, h, [220, 80, 55], 20);
-    ctx.fillStyle = 'rgba(255, 210, 160, 0.7)';
-    ctx.fillRect(5, 0, 6, h);
+
+    const red = document.createElement('canvas');
+    red.width = w;
+    red.height = h;
+    this._paperFill(red.getContext('2d'), w, h, [210, 45, 35], 22);
+    const yellow = document.createElement('canvas');
+    yellow.width = w;
+    yellow.height = h;
+    this._paperFill(yellow.getContext('2d'), w, h, [250, 195, 55], 16);
+    const core = document.createElement('canvas');
+    core.width = w;
+    core.height = h;
+    this._paperFill(core.getContext('2d'), w, h, [255, 240, 160], 10);
+
+    // Jagged flame silhouette so the tile reads as cut paper fire.
+    ctx.save();
+    ctx.beginPath();
+    for (let y = 0; y <= h; y++) {
+      const wave = Math.sin(y * 0.55) * 1.8 + Math.sin(y * 1.3 + 1.2) * 1.1;
+      const x = 1 + Math.max(0, 1.5 - wave);
+      if (y === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    for (let y = h; y >= 0; y--) {
+      const wave = Math.sin(y * 0.55) * 1.8 + Math.sin(y * 1.3 + 1.2) * 1.1;
+      ctx.lineTo(w - 1 - Math.max(0, 1.5 + wave), y);
+    }
+    ctx.closePath();
+    ctx.clip();
+    ctx.drawImage(red, 0, 0);
+    ctx.restore();
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(4, 0, w - 8, h);
+    ctx.clip();
+    ctx.globalAlpha = 0.92;
+    ctx.drawImage(yellow, 0, 0);
+    ctx.restore();
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(7, 0, 2, h);
+    ctx.clip();
+    ctx.drawImage(core, 0, 0);
+    ctx.restore();
+
+    ctx.strokeStyle = 'rgba(90, 25, 15, 0.85)';
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    for (let y = 0; y <= h; y++) {
+      const wave = Math.sin(y * 0.55) * 1.8 + Math.sin(y * 1.3 + 1.2) * 1.1;
+      const x = 1 + Math.max(0, 1.5 - wave);
+      if (y === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+    ctx.beginPath();
+    for (let y = 0; y <= h; y++) {
+      const wave = Math.sin(y * 0.55) * 1.8 + Math.sin(y * 1.3 + 1.2) * 1.1;
+      const x = w - 1 - Math.max(0, 1.5 + wave);
+      if (y === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+
     scene.textures.addCanvas(key, canvas);
   },
 
+  /** Paper flame burst pinned at the laser impact tip. */
   makeTip(scene, key) {
     const size = 48;
     const canvas = document.createElement('canvas');
     canvas.width = size;
     canvas.height = size;
     const ctx = canvas.getContext('2d');
-    const g = ctx.createRadialGradient(24, 24, 2, 24, 24, 22);
-    g.addColorStop(0, 'rgba(255, 250, 230, 0.95)');
-    g.addColorStop(0.45, 'rgba(255, 180, 100, 0.9)');
-    g.addColorStop(1, 'rgba(210, 70, 40, 0)');
-    ctx.fillStyle = g;
-    ctx.beginPath();
-    ctx.arc(24, 24, 22, 0, Math.PI * 2);
-    ctx.fill();
+    const cx = 24;
+    const cy = 24;
+
+    const drawPetals = (rgb, radius, lobes, alpha) => {
+      const paper = document.createElement('canvas');
+      paper.width = size;
+      paper.height = size;
+      this._paperFill(paper.getContext('2d'), size, size, rgb, 14);
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.beginPath();
+      for (let i = 0; i < lobes * 2; i++) {
+        const ang = (i / (lobes * 2)) * Math.PI * 2 - Math.PI / 2;
+        const r = (i % 2 === 0 ? radius : radius * 0.45)
+          + Math.sin(i * 2.1) * (radius * 0.08);
+        const x = cx + Math.cos(ang) * r;
+        const y = cy + Math.sin(ang) * r;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.closePath();
+      ctx.clip();
+      ctx.drawImage(paper, 0, 0);
+      ctx.restore();
+    };
+
+    drawPetals([195, 40, 30], 22, 8, 1);
+    drawPetals([230, 80, 35], 17, 6, 0.95);
+    drawPetals([250, 180, 50], 12, 5, 0.95);
+    drawPetals([255, 235, 150], 7, 3, 1);
+
     scene.textures.addCanvas(key, canvas);
   },
 

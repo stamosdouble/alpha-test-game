@@ -1,6 +1,7 @@
 /**
- * Tiled Paper Laser — repeats beam_segment.png via TileSprite (no stretching),
- * and pins impact_tip.png at the exact end of the beam each frame.
+ * Tiled flaming paper laser — repeats beam_segment.png via TileSprite
+ * (no stretching), and pins impact_tip.png at the exact end of the beam
+ * each frame. Fuel / cooldown / damage live in GameScene + GameConfig.laser.
  */
 class Laser {
   /**
@@ -23,12 +24,15 @@ class Laser {
     this.beam = scene.add.tileSprite(0, 0, this.segmentWidth, this.segmentHeight, this.beamKey);
     this.beam.setOrigin(0, 0.5);
     this.beam.setVisible(false);
+    this.beam.setDepth(40);
 
     this.tip = scene.add.image(0, 0, this.tipKey);
     this.tip.setOrigin(0.5, 0.5);
     this.tip.setVisible(false);
+    this.tip.setDepth(41);
 
     this.active = false;
+    this._flickerT = 0;
   }
 
   /** Preload laser assets. */
@@ -52,8 +56,9 @@ class Laser {
    * @param {number} fromY ship Y
    * @param {number} toX   boss / target X
    * @param {number} toY   boss / target Y
+   * @param {number} [delta=16] frame delta for flame flicker
    */
-  update(fromX, fromY, toX, toY) {
+  update(fromX, fromY, toX, toY, delta = 16) {
     const dx = toX - fromX;
     const dy = toY - fromY;
     const distance = Math.sqrt(dx * dx + dy * dy);
@@ -73,18 +78,32 @@ class Laser {
     this.beam.setPosition(fromX, fromY);
     this.beam.setRotation(angle);
     this.beam.width = distance;
-    // Keep the tile pattern scrolling gently for a paper-cut energy feel.
-    this.beam.tilePositionX -= 2;
+    // Keep the tile pattern scrolling for a rushing flame feel.
+    this.beam.tilePositionX -= 6;
+
+    // Red ↔ yellow paper flicker.
+    this._flickerT += delta;
+    const pulse = 0.5 + 0.5 * Math.sin(this._flickerT / 45);
+    const r = 255;
+    const g = Math.floor(70 + pulse * 150);
+    const b = Math.floor(40 + pulse * 30);
+    const tintInt = (r << 16) | (g << 8) | b;
+    this.beam.setTint(tintInt);
+    this.tip.setTint(tintInt);
+    this.tip.setScale(0.95 + pulse * 0.22);
+    this.tip.setAlpha(0.85 + pulse * 0.15);
 
     // Impact tip sits at the exact end of the tiled beam.
     this.tip.setPosition(toX, toY);
-    this.tip.setRotation(angle);
+    this.tip.setRotation(angle + this._flickerT / 180);
   }
 
   hide() {
     this.active = false;
     this.beam.setVisible(false);
     this.tip.setVisible(false);
+    if (this.beam.clearTint) this.beam.clearTint();
+    if (this.tip.clearTint) this.tip.clearTint();
   }
 
   destroy() {
