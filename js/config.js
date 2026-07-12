@@ -188,6 +188,8 @@ const GameConfig = {
         turn: 0.09,
         scale: 0.7,
         hitRadius: 28,
+        /** Player projectile proximity that destroys a missile. */
+        shootRadius: 34,
       },
     },
   },

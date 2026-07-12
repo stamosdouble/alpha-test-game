@@ -47,6 +47,8 @@ class BossArms {
     this.missileTurn = mcfg.turn != null ? mcfg.turn : 0.085;
     this.missileScale = mcfg.scale != null ? mcfg.scale : 0.65;
     this.missileHitRadius = mcfg.hitRadius != null ? mcfg.hitRadius : 28;
+    /** How close a player shot must be to destroy a missile. */
+    this.missileShootRadius = mcfg.shootRadius != null ? mcfg.shootRadius : 34;
     this.missileKey = mcfg.key
       || (scene.textures.exists('arm_missile') ? 'arm_missile' : 'enemy_bullet');
 
@@ -437,6 +439,43 @@ class BossArms {
       }
       return true;
     });
+  }
+
+  /**
+   * Let player projectiles shoot down arm missiles.
+   * @param {Phaser.Physics.Arcade.Group} shots
+   * @param {{onShotDown?: (x:number, y:number) => void}} [hooks]
+   * @returns {number} missiles destroyed this frame
+   */
+  collideProjectiles(shots, hooks = {}) {
+    if (!shots || this.destroyed || this.missiles.length === 0) return 0;
+    let destroyed = 0;
+    const radius = this.missileShootRadius;
+
+    this.missiles = this.missiles.filter((m) => {
+      if (!m.active) return false;
+
+      let hitShot = null;
+      shots.children.each((shot) => {
+        if (hitShot || !shot.active) return;
+        if (Phaser.Math.Distance.Between(m.x, m.y, shot.x, shot.y) <= radius) {
+          hitShot = shot;
+        }
+      });
+
+      if (!hitShot) return true;
+
+      shots.killAndHide(hitShot);
+      if (hitShot.body) hitShot.body.stop();
+      if (typeof hooks.onShotDown === 'function') {
+        hooks.onShotDown(m.x, m.y);
+      }
+      m.destroy();
+      destroyed += 1;
+      return false;
+    });
+
+    return destroyed;
   }
 
   destroy() {
