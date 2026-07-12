@@ -24,9 +24,9 @@
   const isFile = window.location.protocol === 'file:';
   if (isFile) {
     showBanner(
-      'Running from file:// — using embedded paper placeholders',
-      `<p>Gameplay works. To load scanned PNGs from <code>/assets</code>, serve the project root:</p>
-       <p><code>npm start</code> &nbsp;or&nbsp; <code>python3 -m http.server 8080</code></p>`
+      'Tip: swap PNGs in /assets, then refresh',
+      `<p>Your local <code>/assets</code> files load even from <code>file://</code>. Replace a PNG and press <code>Ctrl+Shift+R</code>.</p>
+       <p>For a smoother art loop you can also leave a server running once: <code>npm start</code></p>`
     );
   }
 

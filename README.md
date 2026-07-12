@@ -2,21 +2,12 @@
 
 Landscape papercraft shmup with a hand-cut art workflow. Swap scanned paper PNGs into `/assets` without editing game logic.
 
-## Quick start
+## Swapping art
 
-**Double-clicking `index.html` works** — embedded paper placeholders load via data URIs (no server required).
+Replace PNGs under `/assets` using the **same filenames** (e.g. `assets/player/ship.png`).
 
-Splash screen shows **Paper Squadron** — press **Enter** (or click) to start.
-
-To use scanned PNGs from the `/assets` folder, serve the project root over HTTP:
-
-```bash
-npm start
-# or: npx serve .
-# or: python3 -m http.server 8080
-```
-
-Open the printed URL, then use **Arrows / WASD** to move and **hold Space or click** to fire.
+- **Double-click `index.html`:** local `/assets` files load automatically. After a swap, hard-refresh (`Ctrl+Shift+R`).
+- **Or leave a server running once** (`npm start`) and just refresh the browser after each swap — you do **not** need to restart the server.
 
 ## Folder structure
 
