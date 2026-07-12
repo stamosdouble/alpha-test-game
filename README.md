@@ -53,9 +53,11 @@ new Boss(scene, x, y, ['hull', 'wing_l', 'wing_r', 'rivets']);
 
 Add a new scan → drop it in `assets/boss_parts/` → append its name (no extension) to `GameConfig.bossParts` in `js/config.js`.
 
-### Tiled paper laser
+### Tiled flaming paper laser
 
 Uses `beam_segment.png` as a `TileSprite` (repeats by distance, never stretched) and places `impact_tip.png` at the beam end every frame via `Laser.update(fromX, fromY, toX, toY)`.
+
+Holds for up to **5 seconds** of fire (`laser.activeMs`), deals **100 damage/sec** (`laser.damage`), then needs a **20 second** cooldown (`laser.cooldownMs`). Tuning lives under `GameConfig.laser` in `js/config.js`.
 
 ### Organic sway
 
@@ -78,8 +80,8 @@ parallaxLayers: [
 | Slot | Path | Notes |
 |------|------|--------|
 | Boss parts | `assets/boss_parts/*.png` | Same canvas size / shared center; stack order = array order |
-| Laser segment | `assets/laser/beam_segment.png` | Small tileable strip |
-| Laser tip | `assets/laser/impact_tip.png` | Centered hotspot |
+| Laser segment | `assets/laser/beam_segment.png` | Flaming red/yellow tileable strip |
+| Laser tip | `assets/laser/impact_tip.png` | Paper flame burst at impact |
 | Player | `assets/player/ship.png` | Designed around center |
 | Projectiles | `assets/player/projectiles.png` + `.json` | Texture atlas: one sheet, many designs. Add a frame to both files and it becomes selectable in-game (keys 1-9). `projectile.png` remains as single-image fallback |
 | Sparks | `assets/effects/spark.png` | Yellow triangle; burst tuning in `js/config.js` |

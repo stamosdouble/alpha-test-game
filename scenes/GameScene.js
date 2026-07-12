@@ -106,6 +106,15 @@ class GameScene extends Phaser.Scene {
     this.maxHits = (GameConfig.player && GameConfig.player.maxHits) || 6;
     this.projectileDamage = (GameConfig.projectile && GameConfig.projectile.damage) || 5;
 
+    const laserCfg = GameConfig.laser || {};
+    this.laserDamage = laserCfg.damage != null ? laserCfg.damage : 100;
+    this.laserActiveMs = laserCfg.activeMs != null ? laserCfg.activeMs : 5000;
+    this.laserCooldownMs = laserCfg.cooldownMs != null ? laserCfg.cooldownMs : 20000;
+    this.laserTickMs = laserCfg.tickMs != null ? laserCfg.tickMs : 200;
+    this.laserFuelMs = this.laserActiveMs;
+    this.laserCooldownUntil = 0;
+    this.laserNextTickAt = 0;
+
     this.physics.add.overlap(this.player, this.bossBullets.group, (player, bullet) => {
       this._onPlayerHitByBullet(player, bullet);
     });
@@ -321,16 +330,17 @@ class GameScene extends Phaser.Scene {
     const triggerHeld = (this.shooting || this.firing) && !this.playerDead;
     if (triggerHeld) {
       if (this.weapon === 'laser') {
-        if (this.bossDefeated) {
-          this.laser.hide();
-        } else {
-          // Beam from ship center to boss center; tip tracks every frame.
-          this.laser.update(this.player.x, this.player.y, this.boss.x, this.boss.y);
-        }
+        this._tryFireLaser(time, delta);
       } else {
         // Volley from both wing muzzles, travelling straight up.
         this.projectiles.fireVolley(this.player.getMuzzles());
       }
+    } else if (this.weapon === 'laser') {
+      this.laser.hide();
+    }
+
+    if (this.weapon === 'laser') {
+      this._updateShotLabel();
     }
 
     this.shield.update(time, delta);
@@ -426,7 +436,15 @@ class GameScene extends Phaser.Scene {
   _updateShotLabel() {
     if (!this.shotLabel) return;
     if (this.weapon === 'laser') {
-      this.shotLabel.setText('Weapon: paper laser');
+      const time = this.time ? this.time.now : 0;
+      const cooling = time < this.laserCooldownUntil;
+      if (cooling) {
+        const left = Math.max(0, Math.ceil((this.laserCooldownUntil - time) / 1000));
+        this.shotLabel.setText(`Laser: cooling ${left}s`);
+      } else {
+        const fuelSec = Math.max(0, this.laserFuelMs / 1000).toFixed(1);
+        this.shotLabel.setText(`Laser: flame ${fuelSec}s`);
+      }
       return;
     }
     if (this.projectiles.randomize) {
@@ -435,6 +453,62 @@ class GameScene extends Phaser.Scene {
     }
     const type = this.projectiles.currentType;
     this.shotLabel.setText(type ? `Shot: ${type}` : 'Shot: projectile');
+  }
+
+  /**
+   * Flaming paper laser — drains a 5s fuel tank, then 20s cooldown.
+   * Deals laser.damage DPS while the beam is on the boss.
+   */
+  _tryFireLaser(time, delta) {
+    if (this.bossDefeated || !this.boss || !this.boss.visible) {
+      this.laser.hide();
+      return;
+    }
+
+    if (time < this.laserCooldownUntil) {
+      this.laser.hide();
+      return;
+    }
+
+    if (this.laserFuelMs <= 0) {
+      this.laser.hide();
+      this.laserCooldownUntil = time + this.laserCooldownMs;
+      this.laserFuelMs = this.laserActiveMs;
+      this._updateShotLabel();
+      return;
+    }
+
+    this.laser.update(this.player.x, this.player.y, this.boss.x, this.boss.y, delta);
+    this.laserFuelMs = Math.max(0, this.laserFuelMs - delta);
+
+    if (this.laserFuelMs <= 0) {
+      this.laser.hide();
+      this.laserCooldownUntil = time + this.laserCooldownMs;
+      this.laserFuelMs = this.laserActiveMs;
+      this._updateShotLabel();
+      return;
+    }
+
+    if (time >= this.laserNextTickAt) {
+      this.laserNextTickAt = time + this.laserTickMs;
+      this._applyLaserDamage();
+    }
+  }
+
+  /** Apply laser DPS tick against the boss. */
+  _applyLaserDamage() {
+    if (!this.boss || !this.boss.visible || this.bossDefeated) return;
+    if (!this.laser || !this.laser.active) return;
+
+    const dmg = Math.max(1, Math.round(this.laserDamage * (this.laserTickMs / 1000)));
+    this.sparks.burst(
+      this.boss.x + Phaser.Math.Between(-18, 18),
+      this.boss.y + Phaser.Math.Between(-14, 14)
+    );
+    this._registerComboHit();
+    const remaining = this.boss.takeDamage(dmg);
+    this._updateBossHpBar();
+    if (remaining <= 0) this._defeatBoss();
   }
 
   _updateHitsLabel() {

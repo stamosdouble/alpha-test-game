@@ -149,6 +149,14 @@ const GameConfig = {
     beamPath: 'assets/laser/beam_segment.png',
     tipKey: 'impact_tip',
     tipPath: 'assets/laser/impact_tip.png',
+    /** Damage per second while the flaming beam hits the boss. */
+    damage: 100,
+    /** Max continuous fire time before the laser empties. */
+    activeMs: 5000,
+    /** Wait after fuel runs out before the laser refills. */
+    cooldownMs: 20000,
+    /** How often damage is applied while the beam is on target. */
+    tickMs: 200,
   },
 
   boss: {
