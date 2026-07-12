@@ -278,6 +278,22 @@ class GameScene extends Phaser.Scene {
               this._registerComboHit();
             },
           });
+          // Shoot the claw / arm heads (100 HP, 5 dmg per hit).
+          this.bossArms.damageHeads(this.projectiles.group, {
+            onHeadHit: (x, y) => {
+              this.sparks.burst(x, y);
+              this._registerComboHit();
+            },
+            onArmDestroyed: (x, y) => {
+              for (let i = 0; i < 4; i++) {
+                this.sparks.burst(
+                  x + Phaser.Math.Between(-20, 20),
+                  y + Phaser.Math.Between(-20, 20)
+                );
+              }
+              this._registerComboHit();
+            },
+          });
         } else {
           this.bossArms.poseOnly(time, delta);
         }
@@ -464,26 +480,29 @@ class GameScene extends Phaser.Scene {
     }
   }
 
-  /** Full meter: launch a big homing star that seeks the boss. */
+  /** Full meter: launch a giant homing missile that seeks the boss. */
   _launchHomingBlast() {
     if (this.bossDefeated || this.playerDead) return;
 
-    const atlasKey = GameConfig.projectile.atlasKey;
-    const blast = (this.textures.exists(atlasKey) && this.textures.get(atlasKey).has('star_orange'))
-      ? this.add.image(this.player.x, this.player.y - 20, atlasKey, 'star_orange')
-      : this.add.image(this.player.x, this.player.y - 20, GameConfig.projectile.key);
+    const key = this.powerCfg.blastKey || 'giant_homing_missile';
+    const blast = this.textures.exists(key)
+      ? this.add.image(this.player.x, this.player.y - 28, key)
+      : (this.textures.exists('arm_missile')
+        ? this.add.image(this.player.x, this.player.y - 28, 'arm_missile')
+        : this.add.image(this.player.x, this.player.y - 28, GameConfig.projectile.key));
 
-    blast.setScale(0.85);
+    blast.setScale(this.powerCfg.blastScale != null ? this.powerCfg.blastScale : 2.6);
     blast.setDepth(30);
     blast.vx = 0;
-    blast.vy = -(this.powerCfg.blastSpeed || 340);
+    blast.vy = -(this.powerCfg.blastSpeed || 320);
+    blast.isGiantMissile = true;
     this.homingBlasts.push(blast);
   }
 
   _updateHomingBlasts(delta) {
     if (this.homingBlasts.length === 0) return;
     const dt = delta / 1000;
-    const speed = this.powerCfg.blastSpeed || 340;
+    const speed = this.powerCfg.blastSpeed || 320;
 
     this.homingBlasts = this.homingBlasts.filter((blast) => {
       if (this.bossDefeated || !this.boss.visible) {
@@ -495,11 +514,11 @@ class GameScene extends Phaser.Scene {
       const dx = this.boss.x - blast.x;
       const dy = this.boss.y - blast.y;
       const dist = Math.sqrt(dx * dx + dy * dy) || 1;
-      blast.vx = Phaser.Math.Linear(blast.vx, (dx / dist) * speed, 0.09);
-      blast.vy = Phaser.Math.Linear(blast.vy, (dy / dist) * speed, 0.09);
+      blast.vx = Phaser.Math.Linear(blast.vx, (dx / dist) * speed, 0.1);
+      blast.vy = Phaser.Math.Linear(blast.vy, (dy / dist) * speed, 0.1);
       blast.x += blast.vx * dt;
       blast.y += blast.vy * dt;
-      blast.rotation += 7 * dt;
+      blast.setRotation(Math.atan2(blast.vy, blast.vx) + Math.PI / 2);
 
       // Impact against the same visible-art ellipse as regular shots.
       const bossCfg = GameConfig.boss;
@@ -508,10 +527,10 @@ class GameScene extends Phaser.Scene {
       const ex = blast.x - this.boss.x;
       const ey = blast.y - this.boss.y;
       if ((ex * ex) / (hw * hw) + (ey * ey) / (hh * hh) <= 1) {
-        for (let i = 0; i < 3; i++) {
+        for (let i = 0; i < 5; i++) {
           this.sparks.burst(
-            blast.x + Phaser.Math.Between(-24, 24),
-            blast.y + Phaser.Math.Between(-24, 24)
+            blast.x + Phaser.Math.Between(-36, 36),
+            blast.y + Phaser.Math.Between(-36, 36)
           );
         }
         const remaining = this.boss.takeDamage(this.powerCfg.blastDamage || 150);

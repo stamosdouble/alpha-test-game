@@ -42,6 +42,7 @@ const PaperTextures = {
     need(cfg.boss?.arms?.segKey || 'boss_arm_seg', (s, k) => this.makeBossArmSeg(s, k));
     need(cfg.boss?.arms?.clawKey || 'boss_claw', (s, k) => this.makeBossClaw(s, k));
     need(cfg.boss?.arms?.missiles?.key || 'arm_missile', (s, k) => this.makeArmMissile(s, k));
+    need(cfg.power?.blastKey || 'giant_homing_missile', (s, k) => this.makeGiantHomingMissile(s, k));
 
     (cfg.bossParts || []).forEach((name) => {
       const key = `boss_part_${name}`;
@@ -552,6 +553,63 @@ const PaperTextures = {
     ctx.fillStyle = 'rgba(255, 140, 60, 0.85)';
     ctx.beginPath();
     ctx.ellipse(w / 2, h - 2, 5, 3, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    scene.textures.addCanvas(key, canvas);
+  },
+
+  /** Oversized player power-meter missile. */
+  makeGiantHomingMissile(scene, key) {
+    const w = 72;
+    const h = 128;
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    const paper = document.createElement('canvas');
+    paper.width = w;
+    paper.height = h;
+    this._paperFill(paper.getContext('2d'), w, h, [220, 95, 55], 12);
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(w / 2, 4);
+    ctx.lineTo(w - 6, 36);
+    ctx.lineTo(w - 10, h - 8);
+    ctx.lineTo(10, h - 8);
+    ctx.lineTo(6, 36);
+    ctx.closePath();
+    ctx.clip();
+    ctx.drawImage(paper, 0, 0);
+    ctx.restore();
+
+    ctx.strokeStyle = 'rgba(50, 22, 14, 0.95)';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(w / 2, 4);
+    ctx.lineTo(w - 6, 36);
+    ctx.lineTo(w - 10, h - 8);
+    ctx.lineTo(10, h - 8);
+    ctx.lineTo(6, 36);
+    ctx.closePath();
+    ctx.stroke();
+
+    // Stripe bands
+    ctx.fillStyle = 'rgba(255, 230, 160, 0.55)';
+    ctx.fillRect(16, 48, w - 32, 10);
+    ctx.fillRect(18, 70, w - 36, 8);
+
+    ctx.fillStyle = 'rgb(255, 220, 120)';
+    ctx.beginPath();
+    ctx.moveTo(w / 2, 4);
+    ctx.lineTo(w / 2 + 12, 28);
+    ctx.lineTo(w / 2 - 12, 28);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.fillStyle = 'rgba(255, 140, 50, 0.9)';
+    ctx.beginPath();
+    ctx.ellipse(w / 2, h - 4, 14, 8, 0, 0, Math.PI * 2);
     ctx.fill();
 
     scene.textures.addCanvas(key, canvas);

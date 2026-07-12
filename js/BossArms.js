@@ -39,6 +39,9 @@ class BossArms {
 
     this.segKey = cfg.segKey || 'boss_arm_seg';
     this.clawKey = cfg.clawKey || 'boss_claw';
+    this.armMaxHp = options.maxHp != null ? options.maxHp : (cfg.maxHp != null ? cfg.maxHp : 100);
+    this.armHitDamage = options.hitDamage != null ? options.hitDamage : (cfg.hitDamage != null ? cfg.hitDamage : 5);
+    this.headHitRadius = options.headHitRadius != null ? options.headHitRadius : (cfg.headHitRadius || 48);
 
     const mcfg = cfg.missiles || {};
     this.missilesEnabled = mcfg.enabled !== false;
@@ -80,6 +83,9 @@ class BossArms {
       upper,
       lower,
       claw,
+      alive: true,
+      hp: this.armMaxHp,
+      maxHp: this.armMaxHp,
       state: 'idle',
       reach: 0,
       handX: 0,
@@ -92,6 +98,7 @@ class BossArms {
       grabbed: false,
       firedOnPinch: false,
       stateUntil: 0,
+      _flashUntil: 0,
     };
   }
 
@@ -251,12 +258,17 @@ class BossArms {
     }
 
     if (this.missilesEnabled && time >= this._nextMissileAt) {
-      this.arms.forEach((arm) => this._fireMissile(arm, player));
+      this.livingArms().forEach((arm) => this._fireMissile(arm, player));
       this._nextMissileAt = time + this.missileIntervalMs;
     }
 
     this.arms.forEach((arm) => this._updateArm(arm, time, delta, player, hooks));
     this._updateMissiles(delta, player, hooks);
+  }
+
+  /** Living arms only. */
+  livingArms() {
+    return this.arms.filter((a) => a.alive);
   }
 
   /** Call once the boss has finished descending onto the playfield. */
@@ -268,6 +280,7 @@ class BossArms {
   poseOnly(time, delta) {
     if (this.destroyed) return;
     this.arms.forEach((arm) => {
+      if (!arm.alive) return;
       arm.state = 'idle';
       arm.reach = 0;
       this._updateArm(arm, time, delta, null, {});
@@ -276,19 +289,21 @@ class BossArms {
 
   _startAttack(time, player) {
     if (!player || !player.active) return;
-    const arm = this.arms[this._activeIndex % this.arms.length];
-    this._activeIndex += 1;
+    const living = this.livingArms();
+    if (living.length === 0) return;
 
     const side = player.x < this.boss.x ? 0 : 1;
     const preferred = this.arms[side];
-    const chosen = preferred.state === 'idle' ? preferred : arm;
-    if (chosen.state !== 'idle') return;
+    let chosen = preferred && preferred.alive && preferred.state === 'idle' ? preferred : null;
+    if (!chosen) {
+      chosen = living.find((a) => a.state === 'idle') || null;
+    }
+    if (!chosen) return;
 
     chosen.state = 'reaching';
     chosen.reach = 0;
     chosen.grabbed = false;
     chosen.firedOnPinch = false;
-    // Aim past the player toward the bottom of the screen so stretch reads clearly.
     const { height } = this.scene.scale;
     chosen.targetX = player.x;
     chosen.targetY = Math.min(height - 24, Math.max(player.y, player.y));
@@ -297,6 +312,8 @@ class BossArms {
   }
 
   _updateArm(arm, time, delta, player, hooks) {
+    if (!arm.alive) return;
+
     const shoulder = this._shoulderWorld(arm);
     const rest = this._restHand(arm);
     arm.restHandX = rest.x;
@@ -380,11 +397,34 @@ class BossArms {
     } else {
       arm.claw.setScale(1.15);
     }
+    // Hit flash on the claw head.
+    if (time < arm._flashUntil) {
+      arm.claw.setTintFill(0xfff6e0);
+    } else if (arm.claw.clearTint) {
+      arm.claw.clearTint();
+    }
     this._drawLimb(arm.graphics, shoulder, solved.elbow, solved.hand, solved.stretch);
+    this._drawHeadHp(arm);
+  }
+
+  /** Tiny HP pip above the claw so arm health is readable. */
+  _drawHeadHp(arm) {
+    if (!arm.hpGfx) {
+      arm.hpGfx = this.scene.add.graphics().setDepth(27);
+    }
+    const g = arm.hpGfx;
+    g.clear();
+    if (!arm.alive) return;
+    const w = 36;
+    const ratio = arm.maxHp > 0 ? arm.hp / arm.maxHp : 0;
+    g.fillStyle(0x1a1410, 0.75);
+    g.fillRect(arm.handX - w / 2, arm.handY - 28, w, 5);
+    g.fillStyle(ratio > 0.35 ? 0xd05a46 : 0xe8a060, 1);
+    g.fillRect(arm.handX - w / 2, arm.handY - 28, w * ratio, 5);
   }
 
   _fireMissile(arm, player) {
-    if (!this.missilesEnabled || this.destroyed) return;
+    if (!this.missilesEnabled || this.destroyed || !arm || !arm.alive) return;
     if (!this.scene.textures.exists(this.missileKey)) return;
 
     const m = this.scene.add.image(arm.handX, arm.handY, this.missileKey);
@@ -442,6 +482,72 @@ class BossArms {
   }
 
   /**
+   * Damage claw / arm heads with player projectiles.
+   * Each hit deals armHitDamage (default 5); arm dies at 0 HP.
+   * @param {Phaser.Physics.Arcade.Group} shots
+   * @param {{onHeadHit?: Function, onArmDestroyed?: Function}} [hooks]
+   * @returns {number} hits applied
+   */
+  damageHeads(shots, hooks = {}) {
+    if (!shots || this.destroyed) return 0;
+    let hits = 0;
+    const radius = this.headHitRadius;
+    const dmg = this.armHitDamage;
+    const now = this.scene.time.now;
+
+    shots.children.each((shot) => {
+      if (!shot.active) return;
+
+      let hitArm = null;
+      for (let i = 0; i < this.arms.length; i++) {
+        const arm = this.arms[i];
+        if (!arm.alive) continue;
+        if (Phaser.Math.Distance.Between(shot.x, shot.y, arm.handX, arm.handY) <= radius) {
+          hitArm = arm;
+          break;
+        }
+      }
+      if (!hitArm) return;
+
+      shots.killAndHide(shot);
+      if (shot.body) shot.body.stop();
+
+      hitArm.hp = Math.max(0, hitArm.hp - dmg);
+      hitArm._flashUntil = now + 90;
+      hits += 1;
+
+      if (typeof hooks.onHeadHit === 'function') {
+        hooks.onHeadHit(hitArm.handX, hitArm.handY, hitArm.hp, hitArm.maxHp);
+      }
+
+      if (hitArm.hp <= 0) {
+        this._destroyArm(hitArm);
+        if (typeof hooks.onArmDestroyed === 'function') {
+          hooks.onArmDestroyed(hitArm.handX, hitArm.handY);
+        }
+      }
+    });
+
+    return hits;
+  }
+
+  _destroyArm(arm) {
+    if (!arm.alive) return;
+    arm.alive = false;
+    arm.state = 'dead';
+    arm.hp = 0;
+    arm.graphics.clear();
+    arm.graphics.setVisible(false);
+    arm.upper.setVisible(false);
+    arm.lower.setVisible(false);
+    arm.claw.setVisible(false);
+    if (arm.hpGfx) {
+      arm.hpGfx.clear();
+      arm.hpGfx.setVisible(false);
+    }
+  }
+
+  /**
    * Let player projectiles shoot down arm missiles.
    * @param {Phaser.Physics.Arcade.Group} shots
    * @param {{onShotDown?: (x:number, y:number) => void}} [hooks]
@@ -485,6 +591,7 @@ class BossArms {
       arm.upper.destroy();
       arm.lower.destroy();
       arm.claw.destroy();
+      if (arm.hpGfx) arm.hpGfx.destroy();
     });
     this.arms = [];
     this.missiles.forEach((m) => m.destroy());
