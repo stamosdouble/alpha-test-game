@@ -49,7 +49,7 @@ const GameConfig = {
     scale: 0.175,
     spinSpeed: 4.6,
     /** Damage dealt to the boss per hit. */
-    damage: 50,
+    damage: 15,
   },
 
   bossBullets: {
@@ -94,6 +94,11 @@ const GameConfig = {
     maxHp: 1000,
     /** Descend-from-above entrance before the fight starts. */
     entranceMs: 2400,
+    /** Muzzle offsets (unscaled, relative to boss center) where bullets emanate. */
+    muzzles: [
+      { x: -62, y: 58 },
+      { x: 62, y: 58 },
+    ],
     /** Horizontal sway across the screen while firing. */
     swayAmplitude: 200,
     swaySpeed: 0.45,

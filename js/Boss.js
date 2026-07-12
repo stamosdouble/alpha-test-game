@@ -106,6 +106,20 @@ class Boss extends Phaser.GameObjects.Container {
     return this.hp;
   }
 
+  /**
+   * World-space muzzle positions (config offsets scaled with the boss).
+   * Falls back to the boss center when no muzzles are configured.
+   * @returns {{x:number, y:number}[]}
+   */
+  getMuzzles() {
+    const cfg = (window.GameConfig && GameConfig.boss) || {};
+    const offsets = cfg.muzzles && cfg.muzzles.length ? cfg.muzzles : [{ x: 0, y: 0 }];
+    return offsets.map((m) => ({
+      x: this.x + m.x * this.scaleX,
+      y: this.y + m.y * this.scaleY,
+    }));
+  }
+
   /** Brief white-hot flash across every part. */
   flash(durationMs = 90) {
     this.list.forEach((part) => {
