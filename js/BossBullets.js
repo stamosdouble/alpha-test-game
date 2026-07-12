@@ -39,6 +39,14 @@ class BossBullets {
     });
   }
 
+  /** Stop wave timer (scene restart / shutdown). */
+  destroy() {
+    if (this.waveTimer) {
+      this.waveTimer.remove(false);
+      this.waveTimer = null;
+    }
+  }
+
   /** Preload the enemy bullet sprite. */
   static preload(scene) {
     const cfg = (window.GameConfig && GameConfig.bossBullets) || {};
@@ -102,6 +110,7 @@ class BossBullets {
     const golden = 2.399963; // radians; produces a pleasing non-repeating spiral
     for (let i = 0; i < this.spiralCount; i++) {
       this.scene.time.delayedCall((i / this.spiralCount) * this.spiralDurationMs, () => {
+        if (!this.scene || !this.scene.sys || !this.scene.sys.isActive()) return;
         const boss = this.scene.boss;
         if (!boss || !boss.visible) return;
         const muzzles = this._muzzles();

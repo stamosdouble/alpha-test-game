@@ -43,6 +43,7 @@ class GameScene extends Phaser.Scene {
       duration: bossCfg.entranceMs || 2400,
       ease: 'Sine.easeOut',
       onComplete: () => {
+        if (!this.sys || !this.sys.isActive() || this._restarting) return;
         this.bossEntranceDone = true;
         this.swayStartTime = this.time.now;
         if (this.bossArms) this.bossArms.arm();
@@ -101,6 +102,7 @@ class GameScene extends Phaser.Scene {
 
     this.playerDead = false;
     this.bossDefeated = false;
+    this._restarting = false;
     this.maxHits = (GameConfig.player && GameConfig.player.maxHits) || 6;
     this.projectileDamage = (GameConfig.projectile && GameConfig.projectile.damage) || 5;
 
@@ -240,11 +242,7 @@ class GameScene extends Phaser.Scene {
     this._updateBossHpBar();
 
     // Restart after victory or defeat.
-    this.input.keyboard.on('keydown-R', () => {
-      if (this.playerDead || this.bossDefeated) {
-        this.scene.restart(this.sceneData);
-      }
-    });
+    this.input.keyboard.on('keydown-R', this._onRestartKey, this);
 
     const report = window.__assetReport || data || {};
     const diskApplied = report.diskApplied || (report.loadedFromDisk && report.loadedFromDisk.length) || 0;
@@ -626,6 +624,49 @@ class GameScene extends Phaser.Scene {
     this.bossHpText.setText(`${this.boss.hp} / ${this.boss.maxHp}`);
   }
 
+  _onRestartKey() {
+    if (this._restarting) return;
+    if (!this.playerDead && !this.bossDefeated) return;
+    this._restarting = true;
+    this.scene.restart(this.sceneData);
+  }
+
+  /**
+   * Clean up systems before Phaser tears the scene down (R restart).
+   * Prevents orphaned timers/tweens from crashing the next run.
+   */
+  shutdown() {
+    this._restarting = true;
+    this.input.keyboard.off('keydown-R', this._onRestartKey, this);
+
+    if (this.homingBlasts) {
+      this.homingBlasts.forEach((blast) => {
+        if (blast && blast._flashEvent) blast._flashEvent.remove(false);
+        if (blast && blast.destroy) blast.destroy();
+      });
+      this.homingBlasts = [];
+    }
+
+    if (this.bossArms) {
+      this.bossArms.destroy();
+      this.bossArms = null;
+    }
+    if (this.bossBullets && this.bossBullets.destroy) this.bossBullets.destroy();
+    if (this.shield && this.shield.destroy) this.shield.destroy();
+    if (this.minions && this.minions.destroy) this.minions.destroy();
+    if (this.powerPellets && this.powerPellets.destroy) this.powerPellets.destroy();
+
+    if (this.player && window.DropShadow) DropShadow.destroy(this.player);
+    if (this.projectiles && this.projectiles.group) {
+      this.projectiles.group.children.each((shot) => {
+        if (window.DropShadow) DropShadow.destroy(shot);
+      });
+    }
+
+    this.tweens.killAll();
+    this.time.removeAllEvents();
+  }
+
   _defeatBoss() {
     if (this.bossDefeated) return;
     this.bossDefeated = true;
@@ -638,13 +679,17 @@ class GameScene extends Phaser.Scene {
     // Paper confetti send-off, then hide the boss.
     for (let i = 0; i < 6; i++) {
       this.time.delayedCall(i * 120, () => {
+        if (!this.sys || !this.sys.isActive() || !this.boss || !this.sparks) return;
         this.sparks.burst(
           this.boss.x + Phaser.Math.Between(-80, 80),
           this.boss.y + Phaser.Math.Between(-60, 60)
         );
       });
     }
-    this.time.delayedCall(700, () => this.boss.setVisible(false));
+    this.time.delayedCall(700, () => {
+      if (!this.sys || !this.sys.isActive() || !this.boss) return;
+      this.boss.setVisible(false);
+    });
     this.laser.hide();
 
     this.add.text(this.scale.width / 2, this.scale.height / 2, 'Boss defeated!\nPress R to play again', {
@@ -664,6 +709,7 @@ class GameScene extends Phaser.Scene {
     this.sparks.burst(this.player.x - 10, this.player.y + 8);
     this.sparks.burst(this.player.x + 10, this.player.y - 8);
     this.player.setVisible(false);
+    if (window.DropShadow) DropShadow.hide(this.player);
     this.laser.hide();
 
     this.add.text(this.scale.width / 2, this.scale.height / 2, 'Ship destroyed!\nPress R to try again', {

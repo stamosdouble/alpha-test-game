@@ -30,11 +30,17 @@ const DropShadow = {
   attach(scene, sprite, extra = {}) {
     const opts = this.options(extra);
     let shadow = sprite._dropShadow;
+    const key = sprite.texture && sprite.texture.key;
+    const frameName = sprite.frame && sprite.frame.name !== '__BASE' ? sprite.frame.name : undefined;
+
     if (!shadow || !shadow.scene) {
-      shadow = scene.add.image(sprite.x, sprite.y, sprite.texture.key, sprite.frame.name);
+      shadow = frameName != null
+        ? scene.add.image(sprite.x, sprite.y, key, frameName)
+        : scene.add.image(sprite.x, sprite.y, key);
       sprite._dropShadow = shadow;
-    } else {
-      shadow.setTexture(sprite.texture.key, sprite.frame.name);
+    } else if (key) {
+      if (frameName != null) shadow.setTexture(key, frameName);
+      else shadow.setTexture(key);
     }
     shadow.setOrigin(sprite.originX, sprite.originY);
     shadow.setTintFill(opts.tint);
@@ -67,7 +73,7 @@ const DropShadow = {
   /** Keep a world-space shadow matched to its owner sprite. */
   sync(sprite) {
     const shadow = sprite._dropShadow;
-    if (!shadow || !shadow.scene) return;
+    if (!shadow || !shadow.active || !shadow.scene) return;
     const opts = shadow._shadowOpts || this.options();
     const visible = sprite.visible && (sprite.active !== false) && sprite.alpha > 0.05;
     shadow.setVisible(visible);
@@ -78,7 +84,13 @@ const DropShadow = {
     shadow.setScale(sprite.scaleX, sprite.scaleY);
     shadow.setAlpha(opts.alpha * Math.min(1, sprite.alpha));
     shadow.setDepth((sprite.depth || 0) - 1);
-    if (sprite.frame && shadow.frame && sprite.frame.name !== shadow.frame.name) {
+    if (
+      sprite.frame &&
+      shadow.frame &&
+      sprite.frame.name &&
+      sprite.frame.name !== '__BASE' &&
+      sprite.frame.name !== shadow.frame.name
+    ) {
       shadow.setFrame(sprite.frame.name);
     }
   },

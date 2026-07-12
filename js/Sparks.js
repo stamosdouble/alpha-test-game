@@ -66,6 +66,9 @@ class Sparks {
         duration: life,
         ease: 'Cubic.easeOut',
         onComplete: () => {
+          // Scene may have restarted (R) while the burst was still tweening.
+          if (!this.scene || !this.scene.sys || !this.scene.sys.isActive()) return;
+          if (!spark || !this.pool) return;
           this.pool.killAndHide(spark);
         },
       });
