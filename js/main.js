@@ -1,6 +1,6 @@
 /**
  * Phaser 3 entry — boots even when opened via file://.
- * Placeholders come from EmbeddedAssets (data URIs); disk PNGs load over HTTP.
+ * Disk PNGs under /assets are tried first; EmbeddedAssets fill gaps.
  */
 (function boot() {
   const errorEl = document.getElementById('boot-error');
@@ -21,12 +21,19 @@
     return;
   }
 
+  console.info(
+    '[Paper Squadron] Disk art loads from paths next to index.html (js/config.js). ' +
+      'After preload, open console: window.__assetReport — loadedFromDisk vs failedDisk. ' +
+      'Splash also shows how many /assets files loaded. After a PNG swap: Ctrl+Shift+R.'
+  );
+
   const isFile = window.location.protocol === 'file:';
   if (isFile) {
     showBanner(
-      'Tip: swap PNGs in /assets, then refresh',
-      `<p>Your local <code>/assets</code> files load even from <code>file://</code>. Replace a PNG and press <code>Ctrl+Shift+R</code>.</p>
-       <p>For a smoother art loop you can also leave a server running once: <code>npm start</code></p>`
+      'Art loads from /assets beside this HTML',
+      `<p>Splash shows how many PNGs loaded. If it says placeholders only, check filenames
+       (e.g. <code>assets/player/ship.png</code>) and hard-refresh (<code>Ctrl+Shift+R</code>).</p>
+       <p>Optional smoother loop: <code>npm start</code> then open the localhost URL.</p>`
     );
   }
 

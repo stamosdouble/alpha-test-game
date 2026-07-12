@@ -1,48 +1,30 @@
 /**
- * PreloadScene — loads embedded placeholders, then overlays /assets PNGs.
+ * PreloadScene — prefers PNGs from /assets, falls back to embedded art.
  *
- * Disk art is loaded over HTTP *and* when you open index.html directly
- * (via HTML Image, which browsers allow on file:// for local folders).
- * Leave a server running once, or just double-click + refresh after swaps.
+ * Disk files load via HTML Image (works on http:// and file://). Do not set
+ * crossOrigin on file:// — that breaks local Image loads in Chromium.
+ * Splash + window.__assetReport show what actually came from disk.
  */
 class PreloadScene extends Phaser.Scene {
   constructor() {
     super({ key: 'PreloadScene' });
     this.failedFiles = [];
-    this.diskSwaps = [];
+    this.loadedFromDisk = [];
   }
 
   preload() {
     const width = this.cameras.main.width;
     const height = this.cameras.main.height;
 
-    const barBg = this.add.rectangle(width / 2, height / 2, 320, 24, 0x2a303c);
-    const bar = this.add.rectangle(width / 2 - 158, height / 2, 4, 16, 0xc4a484).setOrigin(0, 0.5);
-    this._loadLabel = this.add.text(width / 2, height / 2 - 40, 'Cutting paper…', {
+    this._barBg = this.add.rectangle(width / 2, height / 2, 320, 24, 0x2a303c);
+    this._bar = this.add.rectangle(width / 2 - 158, height / 2, 4, 16, 0xc4a484).setOrigin(0, 0.5);
+    this._loadLabel = this.add.text(width / 2, height / 2 - 40, 'Loading /assets…', {
       fontFamily: 'Georgia, serif',
       fontSize: '18px',
       color: '#d8cbb8',
     }).setOrigin(0.5);
-    this._barBg = barBg;
-    this._bar = bar;
 
-    this.load.on('progress', (value) => {
-      bar.width = 4 + 312 * value;
-    });
-
-    this.load.on('loaderror', (file) => {
-      const src = (file && (file.src || file.url || file.key)) || 'unknown';
-      this.failedFiles.push(String(src));
-      console.warn('[Preload] Optional asset failed (fallback OK):', src);
-    });
-
-    // Embedded placeholders first so something always exists.
-    this._loadEmbedded();
-
-    // Over HTTP, queue disk PNGs through Phaser's loader.
-    if (window.location.protocol !== 'file:') {
-      this._queueDiskOverrides();
-    }
+    // Disk + embedded loads run in create() via Image / fetch (not Phaser XHR).
   }
 
   _diskManifest() {
@@ -71,98 +53,106 @@ class PreloadScene extends Phaser.Scene {
     return entries;
   }
 
-  _loadEmbedded() {
-    const pack = window.EmbeddedAssets || {};
-    Object.keys(pack).forEach((key) => {
-      if (this.textures.exists(key)) {
-        this.textures.remove(key);
-      }
-      this.load.image(key, pack[key]);
-    });
-  }
-
-  _queueDiskOverrides() {
-    this.diskSwaps = [];
-    this._diskManifest().forEach(({ key, path }) => {
-      const tempKey = `${key}__disk`;
-      this.diskSwaps.push({ realKey: key, tempKey, path });
-      // Cache-bust so swapping a PNG + refresh always picks up the new file.
-      this.load.image(tempKey, `${resolveAsset(path)}?t=${Date.now()}`);
-    });
-  }
-
-  _applyDiskOverrides() {
-    let applied = 0;
-    this.diskSwaps.forEach(({ realKey, tempKey }) => {
-      if (!this.textures.exists(tempKey)) return;
-      const temp = this.textures.get(tempKey);
-      if (!temp || temp.key === '__MISSING') return;
-      const source = temp.getSourceImage();
-      if (!source) return;
-
-      if (this.textures.exists(realKey)) {
-        this.textures.remove(realKey);
-      }
-      this.textures.addImage(realKey, source);
-      this.textures.remove(tempKey);
-      applied += 1;
-    });
-    return applied;
+  _assetUrl(path) {
+    const base = typeof resolveAsset === 'function' ? resolveAsset(path) : path;
+    // Cache-bust so a PNG swap + refresh always picks up the new file.
+    // Skip query on file:// — some browsers reject local URLs with ?query.
+    if (window.location.protocol === 'file:') return base;
+    const sep = base.includes('?') ? '&' : '?';
+    return `${base}${sep}t=${Date.now()}`;
   }
 
   /**
-   * On file://, Phaser XHR can't read local PNGs — but <img src="assets/..."> can.
-   * Load each disk path that way and replace the embedded texture when it works.
+   * Load one image into the texture manager.
+   * @param {string} key
+   * @param {string} src relative path or data URI
+   * @returns {Promise<boolean>}
    */
-  _applyDiskOverridesViaImage() {
-    const entries = this._diskManifest();
-    let done = 0;
-    let applied = 0;
-
+  _loadImageKey(key, src) {
     return new Promise((resolve) => {
-      if (entries.length === 0) {
-        resolve(0);
-        return;
+      const img = new Image();
+      const isData = String(src).startsWith('data:');
+      // CORS only for http(s). Setting crossOrigin on file:// breaks loads.
+      if (!isData && /^https?:/i.test(window.location.protocol)) {
+        img.crossOrigin = 'anonymous';
       }
 
-      entries.forEach(({ key, path }) => {
-        const img = new Image();
-        const finish = (ok) => {
-          if (ok) applied += 1;
-          else this.failedFiles.push(path);
-          done += 1;
-          if (this._bar) {
-            this._bar.width = 4 + 312 * (done / entries.length);
+      img.onload = () => {
+        try {
+          if (this.textures.exists(key)) {
+            this.textures.remove(key);
           }
-          if (done >= entries.length) resolve(applied);
-        };
+          this.textures.addImage(key, img);
+          resolve(true);
+        } catch (err) {
+          console.warn('[Preload] addImage failed for', key, err);
+          resolve(false);
+        }
+      };
+      img.onerror = () => resolve(false);
 
-        img.onload = () => {
-          try {
-            if (this.textures.exists(key)) this.textures.remove(key);
-            this.textures.addImage(key, img);
-            finish(true);
-          } catch (err) {
-            console.warn('[Preload] Could not install', path, err);
-            finish(false);
-          }
-        };
-        img.onerror = () => finish(false);
-        // Relative to index.html — works for file:// and cache-busts swaps.
-        img.src = `${path}?t=${Date.now()}`;
-      });
+      img.src = isData ? src : this._assetUrl(src);
     });
   }
 
-  async create() {
-    let diskApplied = 0;
+  async _loadDiskFirst() {
+    const entries = this._diskManifest();
+    let done = 0;
 
-    if (window.location.protocol === 'file:') {
-      if (this._loadLabel) this._loadLabel.setText('Loading /assets…');
-      diskApplied = await this._applyDiskOverridesViaImage();
-    } else {
-      diskApplied = this._applyDiskOverrides();
+    for (const { key, path } of entries) {
+      const ok = await this._loadImageKey(key, path);
+      if (ok) {
+        this.loadedFromDisk.push(path);
+      } else {
+        this.failedFiles.push(path);
+        console.warn('[Preload] Disk miss:', path);
+      }
+      done += 1;
+      if (this._bar) {
+        this._bar.width = 4 + 312 * (done / Math.max(1, entries.length));
+      }
+      if (this._loadLabel) {
+        this._loadLabel.setText(ok ? `Loaded ${path}` : `Missing ${path}`);
+      }
     }
+  }
+
+  async _fillEmbeddedGaps() {
+    const pack = window.EmbeddedAssets || {};
+    for (const key of Object.keys(pack)) {
+      if (this.textures.exists(key)) continue;
+      await this._loadImageKey(key, pack[key]);
+    }
+  }
+
+  /** Pull atlas JSON from disk when fetch is allowed (HTTP). file:// uses embedded. */
+  async _loadAtlasJsonFromDisk() {
+    const cfg = (window.GameConfig && GameConfig.projectile) || {};
+    const atlasKey = cfg.atlasKey || 'projectiles';
+    const path = cfg.atlasDataPath || 'assets/player/projectiles.json';
+    const cacheKey = `${atlasKey}_data`;
+
+    if (window.location.protocol === 'file:') return false;
+
+    try {
+      const res = await fetch(this._assetUrl(path), { cache: 'no-store' });
+      if (!res.ok) return false;
+      const data = await res.json();
+      if (this.cache.json.exists(cacheKey)) {
+        this.cache.json.remove(cacheKey);
+      }
+      this.cache.json.add(cacheKey, data);
+      return true;
+    } catch (err) {
+      console.warn('[Preload] Atlas JSON not loaded from disk:', path, err);
+      return false;
+    }
+  }
+
+  async create() {
+    await this._loadDiskFirst();
+    await this._fillEmbeddedGaps();
+    const atlasJsonFromDisk = await this._loadAtlasJsonFromDisk();
 
     if (this._barBg) this._barBg.destroy();
     if (this._bar) this._bar.destroy();
@@ -171,12 +161,23 @@ class PreloadScene extends Phaser.Scene {
     const generated = (window.PaperTextures && PaperTextures.ensureAll(this)) || [];
     Projectiles.registerFrames(this);
 
-    const usedEmbeddedOnly = diskApplied === 0;
+    const report = {
+      loadedFromDisk: this.loadedFromDisk.slice(),
+      failedDisk: this.failedFiles.slice(),
+      diskApplied: this.loadedFromDisk.length,
+      atlasJsonFromDisk,
+      generated,
+      protocol: window.location.protocol,
+      href: window.location.href,
+    };
+    window.__assetReport = report;
+    console.log('[Paper Squadron] Asset report — check loadedFromDisk vs failedDisk', report);
 
     this.scene.start('TitleScene', {
       usedFallbacks: generated.length > 0,
-      usedEmbeddedOnly,
-      diskApplied,
+      usedEmbeddedOnly: this.loadedFromDisk.length === 0,
+      diskApplied: this.loadedFromDisk.length,
+      loadedFromDisk: this.loadedFromDisk.slice(),
       failedFiles: this.failedFiles.slice(),
     });
   }

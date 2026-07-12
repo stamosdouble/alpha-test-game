@@ -1,14 +1,18 @@
 /**
  * Title / splash screen — Paper Squadron.
  * Press Enter to begin the fight.
+ * Shows whether /assets PNGs actually loaded (so art swaps are verifiable).
  */
 class TitleScene extends Phaser.Scene {
   constructor() {
     super({ key: 'TitleScene' });
   }
 
-  create() {
+  create(data) {
     const { width, height } = this.scale;
+    this.bootData = data || {};
+    const diskApplied = this.bootData.diskApplied || 0;
+    const failed = this.bootData.failedFiles || [];
 
     // Soft paper atmosphere behind the title.
     this.add.rectangle(width / 2, height / 2, width, height, 0x1a1e28);
@@ -23,7 +27,7 @@ class TitleScene extends Phaser.Scene {
     });
 
     // Brand first — hero-level title.
-    const title = this.add.text(width / 2, height * 0.34, 'PAPER\nSQUADRON', {
+    const title = this.add.text(width / 2, height * 0.30, 'PAPER\nSQUADRON', {
       fontFamily: 'Georgia, "Times New Roman", serif',
       fontSize: '64px',
       color: '#e8dcc6',
@@ -31,13 +35,45 @@ class TitleScene extends Phaser.Scene {
       lineSpacing: 8,
     }).setOrigin(0.5).setDepth(10);
 
-    this.add.text(width / 2, height * 0.52, 'A hand-cut paper shooter', {
+    this.add.text(width / 2, height * 0.48, 'A hand-cut paper shooter', {
       fontFamily: 'Georgia, "Times New Roman", serif',
       fontSize: '16px',
       color: '#b8a890',
     }).setOrigin(0.5).setDepth(10);
 
-    const prompt = this.add.text(width / 2, height * 0.68, 'PRESS ENTER', {
+    const statusColor = diskApplied > 0 ? '#8fbf8a' : '#e8a060';
+    const statusLine =
+      diskApplied > 0
+        ? `Using ${diskApplied} file(s) from /assets`
+        : 'No /assets PNGs found — built-in placeholders';
+    this.add.text(width / 2, height * 0.56, statusLine, {
+      fontFamily: 'Georgia, "Times New Roman", serif',
+      fontSize: '14px',
+      color: statusColor,
+    }).setOrigin(0.5).setDepth(10);
+
+    if (diskApplied === 0) {
+      this.add.text(
+        width / 2,
+        height * 0.61,
+        'Put PNGs beside index.html (e.g. assets/player/ship.png), then Ctrl+Shift+R',
+        {
+          fontFamily: 'Georgia, "Times New Roman", serif',
+          fontSize: '12px',
+          color: '#7a7060',
+          align: 'center',
+          wordWrap: { width: width - 48 },
+        }
+      ).setOrigin(0.5).setDepth(10);
+    } else if (failed.length > 0) {
+      this.add.text(width / 2, height * 0.61, `${failed.length} path(s) missing — see console __assetReport`, {
+        fontFamily: 'Georgia, "Times New Roman", serif',
+        fontSize: '12px',
+        color: '#7a7060',
+      }).setOrigin(0.5).setDepth(10);
+    }
+
+    const prompt = this.add.text(width / 2, height * 0.72, 'PRESS ENTER', {
       fontFamily: 'Georgia, "Times New Roman", serif',
       fontSize: '22px',
       color: '#f0c542',
@@ -53,7 +89,7 @@ class TitleScene extends Phaser.Scene {
       ease: 'Sine.easeInOut',
     });
 
-    this.add.text(width / 2, height * 0.86, 'Arrows / WASD · Space fire · L laser · 1-4 shot · 0 random', {
+    this.add.text(width / 2, height * 0.88, 'Arrows / WASD · Space fire · L laser · 1-4 shot · 0 random', {
       fontFamily: 'Georgia, "Times New Roman", serif',
       fontSize: '12px',
       color: '#7a7060',
@@ -61,7 +97,6 @@ class TitleScene extends Phaser.Scene {
       wordWrap: { width: width - 40 },
     }).setOrigin(0.5).setDepth(10);
 
-    // Gentle paper sway on the title block.
     this.tweens.add({
       targets: title,
       y: title.y + 6,
@@ -71,9 +106,8 @@ class TitleScene extends Phaser.Scene {
       ease: 'Sine.easeInOut',
     });
 
-    const start = () => this.scene.start('GameScene');
+    const start = () => this.scene.start('GameScene', this.bootData);
     this.input.keyboard.once('keydown-ENTER', start);
-    // Also allow click / tap for convenience on the splash.
     this.input.once('pointerdown', start);
   }
 }
