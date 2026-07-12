@@ -77,21 +77,11 @@ class GameScene extends Phaser.Scene {
     this.powerPellets = new PowerPellets(this);
     this.powerCfg = GameConfig.power || {};
     this.powerCharge = 0;
-    this.powerMax = this.powerCfg.meterMax || 12;
+    this.powerMax = this.powerCfg.meterMax || 8;
     this.homingBlasts = [];
 
-    this.physics.add.overlap(this.player, this.powerPellets.group, (player, pellet) => {
-      if (!pellet.active || this.playerDead) return;
-      this.powerPellets.group.killAndHide(pellet);
-      pellet.body.stop();
-      this.powerCharge = Math.min(this.powerMax, this.powerCharge + 1);
-      this._updatePowerMeter();
-      if (this.powerCharge >= this.powerMax) {
-        this.powerCharge = 0;
-        this._updatePowerMeter();
-        this._launchHomingBlast();
-      }
-    });
+    // Wing-launched minion fighters (green bullets, one-hit kill)
+    this.minions = new Minions(this);
 
     // Bullet-hell waves from the boss (rings, aimed fans, spirals)
     this.bossBullets = new BossBullets(this);
@@ -107,33 +97,23 @@ class GameScene extends Phaser.Scene {
     this.playerDead = false;
     this.bossDefeated = false;
     this.maxHits = (GameConfig.player && GameConfig.player.maxHits) || 6;
-    this.projectileDamage = (GameConfig.projectile && GameConfig.projectile.damage) || 50;
+    this.projectileDamage = (GameConfig.projectile && GameConfig.projectile.damage) || 5;
 
     this.physics.add.overlap(this.player, this.bossBullets.group, (player, bullet) => {
-      if (!bullet.active || this.playerDead) return;
+      this._onPlayerHitByBullet(player, bullet);
+    });
 
-      // Shield soaks the hit before the hull ever sees it.
-      if (this.shield.isActive()) {
-        this.bossBullets.group.killAndHide(bullet);
-        bullet.body.stop();
-        this.shield.absorbHit();
-        this._updateShieldLabel();
-        return;
-      }
+    this.physics.add.overlap(this.player, this.minions.bullets, (player, bullet) => {
+      this._onPlayerHitByBullet(player, bullet);
+    });
 
-      if (player.isInvulnerable()) return;
-      this.bossBullets.group.killAndHide(bullet);
-      bullet.body.stop();
-      this.sparks.burst(player.x, player.y);
-      this.hitsTaken += 1;
-      this._breakCombo();
-      this._updateHitsLabel();
-
-      if (this.hitsTaken >= this.maxHits) {
-        this._destroyPlayer();
-      } else {
-        player.onHit();
-      }
+    // Player projectiles destroy minions in one hit.
+    this.physics.add.overlap(this.projectiles.group, this.minions.group, (shot, minion) => {
+      if (!shot.active || !minion.active) return;
+      this.projectiles.group.killAndHide(shot);
+      if (shot.body) shot.body.stop();
+      this.minions.destroyShip(minion);
+      this._registerComboHit();
     });
 
     // Main weapon: 'projectile' or 'laser' — toggled with L.
@@ -210,9 +190,9 @@ class GameScene extends Phaser.Scene {
     const barBottom = height - 70;
     this.add.rectangle(barX, barBottom - this.powerBarH / 2, 18, this.powerBarH + 8, 0x2a241c, 0.85)
       .setDepth(100).setScrollFactor(0);
-    this.powerFill = this.add.rectangle(barX, barBottom, 10, 1, 0xf8f4ec)
+    this.powerFill = this.add.rectangle(barX, barBottom, 10, 2, 0xf8f4ec)
       .setOrigin(0.5, 1).setDepth(101).setScrollFactor(0);
-    this.add.text(barX, barBottom + 10, 'POWER', {
+    this.powerLabel = this.add.text(barX, barBottom + 10, 'POWER', {
       fontFamily: 'Georgia, serif',
       fontSize: '10px',
       color: '#d8cbb8',
@@ -300,8 +280,56 @@ class GameScene extends Phaser.Scene {
 
     this.shield.update(time, delta);
     this._updateShieldLabel();
-    this.powerPellets.update(delta);
+    this.powerPellets.update(delta, () => this._collectPowerPellet());
+    this.minions.update(time, delta);
     this._updateHomingBlasts(delta);
+  }
+
+  /** Shared damage path for boss bullets and minion green shots. */
+  _onPlayerHitByBullet(player, bullet) {
+    if (!bullet.active || this.playerDead) return;
+
+    // Find which group owns this bullet and recycle it.
+    const recycle = (group) => {
+      group.killAndHide(bullet);
+      if (bullet.body) bullet.body.stop();
+    };
+    if (this.bossBullets.group.contains(bullet)) recycle(this.bossBullets.group);
+    else if (this.minions.bullets.contains(bullet)) recycle(this.minions.bullets);
+    else return;
+
+    if (this.shield.isActive()) {
+      this.shield.absorbHit();
+      this._updateShieldLabel();
+      return;
+    }
+
+    if (player.isInvulnerable()) return;
+    this.sparks.burst(player.x, player.y);
+    this.hitsTaken += 1;
+    this._breakCombo();
+    this._updateHitsLabel();
+
+    if (this.hitsTaken >= this.maxHits) {
+      this._destroyPlayer();
+    } else {
+      player.onHit();
+    }
+  }
+
+  _collectPowerPellet() {
+    this.powerCharge = Math.min(this.powerMax, this.powerCharge + 1);
+    this._updatePowerMeter();
+    // Brief flash so the fill reads clearly.
+    this.powerFill.setFillStyle(0xfff1d6);
+    this.time.delayedCall(80, () => {
+      if (this.powerFill) this.powerFill.setFillStyle(0xf8f4ec);
+    });
+    if (this.powerCharge >= this.powerMax) {
+      this.powerCharge = 0;
+      this._updatePowerMeter();
+      this._launchHomingBlast();
+    }
   }
 
   _updateShotLabel() {
@@ -365,7 +393,13 @@ class GameScene extends Phaser.Scene {
   _updatePowerMeter() {
     if (!this.powerFill) return;
     const ratio = this.powerCharge / this.powerMax;
-    this.powerFill.height = Math.max(1, this.powerBarH * ratio);
+    const h = Math.max(2, this.powerBarH * ratio);
+    // setSize is required — assigning .height alone can leave Phaser rectangles stale.
+    this.powerFill.setSize(10, h);
+    this.powerFill.setDisplaySize(10, h);
+    if (this.powerLabel) {
+      this.powerLabel.setText(this.powerCharge > 0 ? `${this.powerCharge}/${this.powerMax}` : 'POWER');
+    }
   }
 
   /** Full meter: launch a big homing star that seeks the boss. */
