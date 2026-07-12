@@ -53,15 +53,32 @@ const GameConfig = {
     pelletKey: 'power_pellet',
     pelletPath: 'assets/effects/power_pellet.png',
     /** Boss occasionally emits a string of collectible white pellets. */
-    stringIntervalMs: 9000,
+    stringIntervalMs: 7000,
     stringCount: 6,
     stringGapMs: 130,
     pelletSpeed: 120,
+    /** Collect radius around the player (more forgiving than the tiny hurtbox). */
+    collectRadius: 42,
     /** Pellets collected to fill the meter. */
-    meterMax: 12,
+    meterMax: 8,
     /** Full meter launches a homing blast at the boss. */
     blastDamage: 150,
     blastSpeed: 340,
+  },
+
+  minions: {
+    key: 'minion_ship',
+    path: 'assets/effects/minion_ship.png',
+    bulletKey: 'green_bullet',
+    bulletPath: 'assets/effects/green_bullet.png',
+    /** How often the boss launches a pair of wing fighters. */
+    spawnIntervalMs: 6500,
+    maxAlive: 6,
+    scale: 0.85,
+    speed: 90,
+    fireRateMs: 1100,
+    bulletSpeed: 170,
+    bulletScale: 0.7,
   },
 
   projectile: {
@@ -130,15 +147,15 @@ const GameConfig = {
     maxHp: 1000,
     /** Descend-from-above entrance before the fight starts. */
     entranceMs: 2400,
-    /** Muzzle offsets (unscaled, relative to boss center) at the wing tips. */
+    /** Muzzle offsets (unscaled, relative to boss center) at the wing-tip barrels. */
     muzzles: [
-      { x: -112, y: 58 },
-      { x: 112, y: 58 },
+      { x: -114, y: 48 },
+      { x: 114, y: 48 },
     ],
     /** Visible-art hit ellipse (unscaled) — tighter than the container box so
      *  impacts register on the paper, not the transparent padding. */
-    hitWidth: 245,
-    hitHeight: 185,
+    hitWidth: 255,
+    hitHeight: 195,
     /** Horizontal sway across the screen while firing. */
     swayAmplitude: 200,
     swaySpeed: 0.45,

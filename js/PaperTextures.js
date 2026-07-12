@@ -35,6 +35,8 @@ const PaperTextures = {
     need(cfg.shield?.key || 'shield_orb', (s, k) => this.makeShieldOrb(s, k));
     need(cfg.shield?.ringKey || 'shield_ring', (s, k) => this.makeShieldRing(s, k));
     need(cfg.power?.pelletKey || 'power_pellet', (s, k) => this.makePowerPellet(s, k));
+    need(cfg.minions?.key || 'minion_ship', (s, k) => this.makeMinionShip(s, k));
+    need(cfg.minions?.bulletKey || 'green_bullet', (s, k) => this.makeGreenBullet(s, k));
     need(cfg.laser?.beamKey || 'beam_segment', (s, k) => this.makeBeam(s, k));
     need(cfg.laser?.tipKey || 'impact_tip', (s, k) => this.makeTip(s, k));
 
@@ -220,6 +222,57 @@ const PaperTextures = {
     scene.textures.addCanvas(key, canvas);
   },
 
+  makeGreenBullet(scene, key) {
+    const size = 32;
+    const canvas = document.createElement('canvas');
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext('2d');
+    const paper = document.createElement('canvas');
+    paper.width = size;
+    paper.height = size;
+    this._paperFill(paper.getContext('2d'), size, size, [90, 190, 90], 10);
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(16, 16, 12, 0, Math.PI * 2);
+    ctx.clip();
+    ctx.drawImage(paper, 0, 0);
+    ctx.restore();
+    ctx.fillStyle = 'rgba(210, 245, 180, 0.95)';
+    ctx.beginPath();
+    ctx.arc(15, 15, 6, 0, Math.PI * 2);
+    ctx.fill();
+    scene.textures.addCanvas(key, canvas);
+  },
+
+  makeMinionShip(scene, key) {
+    const size = 64;
+    const canvas = document.createElement('canvas');
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext('2d');
+    const paper = document.createElement('canvas');
+    paper.width = size;
+    paper.height = size;
+    this._paperFill(paper.getContext('2d'), size, size, [110, 125, 95], 12);
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(32, 54);
+    ctx.lineTo(50, 18);
+    ctx.lineTo(42, 14);
+    ctx.lineTo(22, 14);
+    ctx.lineTo(14, 18);
+    ctx.closePath();
+    ctx.clip();
+    ctx.drawImage(paper, 0, 0);
+    ctx.restore();
+    ctx.fillStyle = 'rgba(180, 200, 160, 0.85)';
+    ctx.beginPath();
+    ctx.ellipse(32, 28, 6, 5, 0, 0, Math.PI * 2);
+    ctx.fill();
+    scene.textures.addCanvas(key, canvas);
+  },
+
   makePowerPellet(scene, key) {
     const size = 40;
     const canvas = document.createElement('canvas');
@@ -395,16 +448,30 @@ const PaperTextures = {
       this._paperFill(paper.getContext('2d'), size, size, [195, 175, 140], 14);
       ctx.save();
       ctx.beginPath();
-      // Long swept wings reaching toward the canvas edge.
+      // Wide warship wings staying on their side of the hull.
       if (left) {
-        ctx.moveTo(124, 80); ctx.lineTo(124, 192); ctx.lineTo(8, 214); ctx.lineTo(4, 172); ctx.lineTo(16, 136); ctx.lineTo(54, 66);
+        ctx.moveTo(120, 80); ctx.lineTo(120, 180); ctx.lineTo(50, 212); ctx.lineTo(10, 200);
+        ctx.lineTo(4, 160); ctx.lineTo(10, 120); ctx.lineTo(30, 80); ctx.lineTo(70, 62);
       } else {
-        ctx.moveTo(132, 80); ctx.lineTo(132, 192); ctx.lineTo(248, 214); ctx.lineTo(252, 172); ctx.lineTo(240, 136); ctx.lineTo(202, 66);
+        ctx.moveTo(136, 80); ctx.lineTo(136, 180); ctx.lineTo(206, 212); ctx.lineTo(246, 200);
+        ctx.lineTo(252, 160); ctx.lineTo(246, 120); ctx.lineTo(226, 80); ctx.lineTo(186, 62);
       }
       ctx.closePath();
       ctx.clip();
       ctx.drawImage(paper, 0, 0);
       ctx.restore();
+
+      // Drawn muzzle barrel at the tip.
+      const mx = left ? 14 : 242;
+      const my = 175;
+      ctx.fillStyle = 'rgb(70, 55, 40)';
+      ctx.beginPath(); ctx.arc(mx, my, 12, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = 'rgb(35, 28, 22)';
+      ctx.beginPath(); ctx.arc(mx, my, 7, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = 'rgb(210, 160, 70)';
+      ctx.beginPath(); ctx.arc(mx, my, 5, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = 'rgb(25, 20, 15)';
+      ctx.beginPath(); ctx.arc(mx, my + 1, 2, 0, Math.PI * 2); ctx.fill();
     } else if (name === 'rivets') {
       const spots = [[100, 80], [128, 70], [156, 80], [110, 120], [146, 120], [128, 150], [100, 170], [156, 170]];
       spots.forEach(([x, y]) => {

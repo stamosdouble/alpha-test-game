@@ -78,6 +78,8 @@ class PreloadScene extends Phaser.Scene {
     queue(cfg.shield.key, cfg.shield.path);
     queue(cfg.shield.ringKey, cfg.shield.ringPath);
     queue(cfg.power.pelletKey, cfg.power.pelletPath);
+    queue(cfg.minions.key, cfg.minions.path);
+    queue(cfg.minions.bulletKey, cfg.minions.bulletPath);
     queue(cfg.laser.beamKey, cfg.laser.beamPath);
     queue(cfg.laser.tipKey, cfg.laser.tipPath);
     (cfg.bossParts || []).forEach((name) => {

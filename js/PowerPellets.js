@@ -15,16 +15,20 @@ class PowerPellets {
     this.scene = scene;
     const cfg = (window.GameConfig && GameConfig.power) || {};
     this.key = options.pelletKey || cfg.pelletKey || 'power_pellet';
-    this.stringIntervalMs = options.stringIntervalMs != null ? options.stringIntervalMs : (cfg.stringIntervalMs || 9000);
+    this.stringIntervalMs = options.stringIntervalMs != null ? options.stringIntervalMs : (cfg.stringIntervalMs || 7000);
     this.stringCount = options.stringCount != null ? options.stringCount : (cfg.stringCount || 6);
     this.stringGapMs = options.stringGapMs != null ? options.stringGapMs : (cfg.stringGapMs || 130);
     this.speed = options.pelletSpeed != null ? options.pelletSpeed : (cfg.pelletSpeed || 120);
+    this.collectRadius = options.collectRadius != null ? options.collectRadius : (cfg.collectRadius || 42);
 
     this.group = scene.physics.add.group({
       defaultKey: this.key,
       maxSize: 40,
+      allowGravity: false,
     });
 
+    // First string soon after entrance, then on a cycle.
+    scene.time.delayedCall(3500, () => this.fireString());
     scene.time.addEvent({
       delay: this.stringIntervalMs,
       loop: true,
@@ -68,34 +72,61 @@ class PowerPellets {
         pellet.setActive(true);
         pellet.setVisible(true);
         pellet.setOrigin(0.5, 0.5);
-        pellet.setScale(0.8);
+        pellet.setScale(1.1);
         pellet.setDepth(14);
-        pellet.body.reset(m.x, m.y);
-        pellet.body.setAllowGravity(false);
-        pellet.setVelocity(Math.cos(angle) * this.speed, Math.sin(angle) * this.speed);
+        pellet.setAlpha(1);
+        if (pellet.body) {
+          pellet.body.enable = true;
+          pellet.body.reset(m.x, m.y);
+          pellet.body.setAllowGravity(false);
+          pellet.body.setCircle(16, pellet.width / 2 - 16, pellet.height / 2 - 16);
+          pellet.setVelocity(Math.cos(angle) * this.speed, Math.sin(angle) * this.speed);
+        }
         pellet.spin = 1.5;
+        pellet.collected = false;
       });
     }
   }
 
   /**
-   * Spin pellets and recycle off-screen ones.
+   * Distance-based collection (more reliable than the tiny player hurtbox)
+   * plus spin / recycle of off-screen pellets.
    * @param {number} delta frame delta ms
+   * @param {(pellet: Phaser.GameObjects.Sprite) => void} [onCollect]
    */
-  update(delta) {
+  update(delta, onCollect) {
     const dt = delta / 1000;
     const cam = this.scene.cameras.main;
     const margin = 48;
+    const player = this.scene.player;
 
     this.group.children.each((pellet) => {
-      if (!pellet.active) return;
+      if (!pellet.active || pellet.collected) return;
       pellet.rotation += (pellet.spin || 0) * dt;
+
+      if (player && player.visible && onCollect) {
+        const d = Phaser.Math.Distance.Between(player.x, player.y, pellet.x, pellet.y);
+        if (d <= this.collectRadius) {
+          pellet.collected = true;
+          this.group.killAndHide(pellet);
+          if (pellet.body) {
+            pellet.body.enable = false;
+            pellet.body.stop();
+          }
+          onCollect(pellet);
+          return;
+        }
+      }
+
       if (
         pellet.y < -margin || pellet.y > cam.height + margin ||
         pellet.x < -margin || pellet.x > cam.width + margin
       ) {
         this.group.killAndHide(pellet);
-        pellet.body.stop();
+        if (pellet.body) {
+          pellet.body.enable = false;
+          pellet.body.stop();
+        }
       }
     });
   }
