@@ -157,7 +157,7 @@ class GameScene extends Phaser.Scene {
       if (!this.shooting) this.laser.hide();
     });
 
-    this.add.text(12, 12, 'Arrows / WASD move · Space or click fires · L swaps weapon · 1-4 shot type · 0 random', {
+    this.add.text(12, 12, 'WASD / arrows · Space · L laser · Enter from title', {
       fontFamily: 'Georgia, serif',
       fontSize: '14px',
       color: '#b8a890',
@@ -207,7 +207,8 @@ class GameScene extends Phaser.Scene {
     this._updateComboLabel();
 
     // Boss health bar — paper strip that empties as damage lands.
-    const barW = 320;
+    const barW = Math.min(360, width - 80);
+    this.bossHpBarW = barW;
     this.add.rectangle(width / 2, 40, barW + 6, 20, 0x2a241c, 0.85)
       .setDepth(100).setScrollFactor(0);
     this.bossHpFill = this.add.rectangle(width / 2 - barW / 2, 40, barW, 12, 0xd05a46)
@@ -497,7 +498,7 @@ class GameScene extends Phaser.Scene {
   _updateBossHpBar() {
     if (!this.bossHpFill) return;
     const ratio = this.boss.maxHp > 0 ? this.boss.hp / this.boss.maxHp : 0;
-    this.bossHpFill.width = 320 * ratio;
+    this.bossHpFill.width = this.bossHpBarW * ratio;
     this.bossHpText.setText(`${this.boss.hp} / ${this.boss.maxHp}`);
   }
 

@@ -3,9 +3,11 @@
  * All visual content lives under /assets and is referenced by string keys.
  */
 const GameConfig = {
-  width: 800,
-  height: 600,
+  /** Vertical arcade playfield (19XX-style tall orientation). */
+  width: 480,
+  height: 800,
   backgroundColor: '#1a1e28',
+  title: 'Paper Squadron',
 
   /** Boss part filenames (without .png) from /assets/boss_parts/ */
   bossParts: ['hull', 'wing_l', 'wing_r', 'rivets'],
@@ -77,7 +79,7 @@ const GameConfig = {
     scale: 0.85,
     speed: 90,
     fireRateMs: 1100,
-    bulletSpeed: 170,
+    bulletSpeed: 187,
     bulletScale: 0.7,
   },
 
@@ -108,7 +110,7 @@ const GameConfig = {
   bossBullets: {
     key: 'enemy_bullet',
     path: 'assets/effects/enemy_bullet.png',
-    speed: 130,
+    speed: 143,
     scale: 0.55,
     waveIntervalMs: 1900,
     ringCount: 18,
@@ -141,7 +143,7 @@ const GameConfig = {
 
   boss: {
     partsFolder: 'assets/boss_parts/',
-    x: 400,
+    x: 240,
     y: 160,
     scale: 1.5,
     maxHp: 1000,
@@ -157,7 +159,7 @@ const GameConfig = {
     hitWidth: 255,
     hitHeight: 195,
     /** Horizontal sway across the screen while firing. */
-    swayAmplitude: 200,
+    swayAmplitude: 120,
     swaySpeed: 0.45,
   },
 };
