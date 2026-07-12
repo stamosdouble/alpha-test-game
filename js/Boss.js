@@ -15,6 +15,7 @@ class Boss extends Phaser.GameObjects.Container {
   constructor(scene, x, y, partNames) {
     super(scene, x, y);
     this.partSprites = {};
+    this.flashOverlays = {};
     this.partNames = partNames || (window.GameConfig && GameConfig.bossParts) || [];
 
     const cfg = (window.GameConfig && GameConfig.boss) || {};
@@ -63,6 +64,7 @@ class Boss extends Phaser.GameObjects.Container {
   assemble(partNames) {
     this.removeAll(true);
     this.partSprites = {};
+    this.flashOverlays = {};
     this.partNames = partNames.slice();
 
     partNames.forEach((name) => {
@@ -77,6 +79,16 @@ class Boss extends Phaser.GameObjects.Container {
       sprite.setOrigin(0.5, 0.5);
       this.add(sprite);
       this.partSprites[name] = sprite;
+
+      // Hit-flash layer: same PNG silhouette, ADD-blended so only the art
+      // brightens to white (no rectangle wash, no arms/player).
+      const flash = new Phaser.GameObjects.Image(this.scene, 0, 0, key);
+      flash.setOrigin(0.5, 0.5);
+      flash.setBlendMode(Phaser.BlendModes.ADD);
+      flash.setAlpha(0);
+      flash.setVisible(false);
+      this.add(flash);
+      this.flashOverlays[name] = flash;
     });
   }
 
@@ -123,10 +135,9 @@ class Boss extends Phaser.GameObjects.Container {
   }
 
   /**
-   * Bright hit flash across every hull/wing part.
-   * Uses a world-space wash (reliable on Canvas + WebGL) plus part tint when supported.
+   * Flash only the boss part PNGs (hull / wings / rivets) toward white.
    */
-  flash(durationMs = 160) {
+  flash(durationMs = 130) {
     if (this._flashTimer) {
       this._flashTimer.remove(false);
       this._flashTimer = null;
@@ -136,40 +147,30 @@ class Boss extends Phaser.GameObjects.Container {
       this._flashTween = null;
     }
 
-    Object.values(this.partSprites).forEach((part) => {
-      if (!part) return;
-      if (part.setTintFill) part.setTintFill(0xfff6e0);
+    const overlays = Object.values(this.flashOverlays).filter(Boolean);
+    if (overlays.length === 0) return;
+
+    overlays.forEach((flash) => {
+      flash.setVisible(true);
+      flash.setAlpha(1);
+      this.bringToTop(flash);
     });
 
-    const bounds = this.getBounds();
-    const w = Math.max(120, bounds.width * 1.08);
-    const h = Math.max(90, bounds.height * 1.08);
-    if (!this._worldFlash) {
-      this._worldFlash = this.scene.add.rectangle(this.x, this.y, w, h, 0xfff8e8, 0.8);
-      this._worldFlash.setDepth(28);
-    }
-    this._worldFlash.setPosition(this.x, this.y);
-    this._worldFlash.setSize(w, h);
-    this._worldFlash.setVisible(true);
-    this._worldFlash.setAlpha(0.85);
-    if (this._worldFlash.setBlendMode) {
-      this._worldFlash.setBlendMode(Phaser.BlendModes.ADD);
-    }
-
     this._flashTween = this.scene.tweens.add({
-      targets: this._worldFlash,
+      targets: overlays,
       alpha: 0,
       duration: durationMs,
       ease: 'Quad.easeOut',
       onComplete: () => {
-        if (this._worldFlash) this._worldFlash.setVisible(false);
+        overlays.forEach((flash) => flash.setVisible(false));
         this._flashTween = null;
       },
     });
 
-    this._flashTimer = this.scene.time.delayedCall(durationMs, () => {
-      Object.values(this.partSprites).forEach((part) => {
-        if (part && part.clearTint) part.clearTint();
+    this._flashTimer = this.scene.time.delayedCall(durationMs + 10, () => {
+      overlays.forEach((flash) => {
+        flash.setAlpha(0);
+        flash.setVisible(false);
       });
       this._flashTimer = null;
     });
