@@ -89,7 +89,8 @@ const GameConfig = {
     scale: 0.85,
     speed: 90,
     fireRateMs: 1100,
-    bulletSpeed: 187,
+    /** ~10% faster than the original 187. */
+    bulletSpeed: 206,
     bulletScale: 0.7,
   },
 
@@ -120,7 +121,8 @@ const GameConfig = {
   bossBullets: {
     key: 'enemy_bullet',
     path: 'assets/effects/enemy_bullet.png',
-    speed: 143,
+    /** ~10% faster than the original 143. */
+    speed: 157,
     scale: 0.55,
     waveIntervalMs: 1900,
     ringCount: 18,
@@ -149,6 +151,14 @@ const GameConfig = {
     beamPath: 'assets/laser/beam_segment.png',
     tipKey: 'impact_tip',
     tipPath: 'assets/laser/impact_tip.png',
+    /** Damage per second while the flaming beam hits the boss. */
+    damage: 100,
+    /** Max continuous fire time before the laser empties. */
+    activeMs: 5000,
+    /** Wait after fuel runs out before the laser refills. */
+    cooldownMs: 20000,
+    /** How often damage is applied while the beam is on target. */
+    tickMs: 200,
   },
 
   boss: {
@@ -159,17 +169,24 @@ const GameConfig = {
     maxHp: 1000,
     /** Descend-from-above entrance before the fight starts. */
     entranceMs: 2400,
+    /** Extra local-X push for wing_l / wing_r sprites (wider wingspan). */
+    wingSpanOffset: 72,
     /** Muzzle offsets (unscaled, relative to boss center) at the wing-tip barrels. */
     muzzles: [
-      { x: -114, y: 48 },
-      { x: 114, y: 48 },
+      { x: -188, y: 70 },
+      { x: 188, y: 70 },
+    ],
+    /** Minion hangar exits — fighters launch from openings in each wing. */
+    wingExits: [
+      { x: -130, y: 48 },
+      { x: 130, y: 48 },
     ],
     /** Visible-art hit ellipse (unscaled) — tighter than the container box so
      *  impacts register on the paper, not the transparent padding. */
-    hitWidth: 255,
-    hitHeight: 195,
+    hitWidth: 420,
+    hitHeight: 200,
     /** Horizontal sway across the screen while firing. */
-    swayAmplitude: 260,
+    swayAmplitude: 200,
     swaySpeed: 0.45,
     /** Mechanical grab-arms that reach down toward the player. */
     arms: {
@@ -193,8 +210,8 @@ const GameConfig = {
       headHitRadius: 48,
       /** Shoulder mounts in unscaled boss-local space. */
       shoulders: [
-        { x: -100, y: 40 },
-        { x: 100, y: 40 },
+        { x: -170, y: 42 },
+        { x: 170, y: 42 },
       ],
       /** Homing missiles launched from each claw tip. */
       missiles: {

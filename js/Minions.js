@@ -55,19 +55,22 @@ class Minions {
     );
   }
 
-  /** Launch one fighter from each wingtip. */
+  /** Launch one fighter from each wing hangar bay. */
   spawnPair() {
     const boss = this.scene.boss;
     if (!boss || !boss.visible || this.scene.bossEntranceDone === false) return;
     if (this.scene.playerDead || this.scene.bossDefeated) return;
+    if (this.scene._restarting) return;
 
     const alive = this.group.countActive(true);
     if (alive >= this.maxAlive) return;
 
-    const muzzles = boss.getMuzzles ? boss.getMuzzles() : [{ x: boss.x, y: boss.y }];
-    muzzles.forEach((m, i) => {
+    const exits = boss.getWingExits
+      ? boss.getWingExits()
+      : (boss.getMuzzles ? boss.getMuzzles() : [{ x: boss.x, y: boss.y }]);
+    exits.forEach((exit, i) => {
       if (this.group.countActive(true) >= this.maxAlive) return;
-      this._spawnOne(m.x, m.y, i === 0 ? -1 : 1);
+      this._spawnOne(exit.x, exit.y, i === 0 ? -1 : 1);
     });
   }
 
@@ -79,16 +82,34 @@ class Minions {
     ship.setActive(true);
     ship.setVisible(true);
     ship.setOrigin(0.5, 0.5);
-    ship.setScale(this.scale);
+    ship.setScale(this.scale * 0.35);
+    ship.setAlpha(0.4);
     ship.setDepth(16);
     ship.body.reset(x, y);
     ship.body.setAllowGravity(false);
     ship.body.setSize(ship.width * 0.7, ship.height * 0.7, true);
+    ship.body.moves = false;
     ship.side = side;
     ship.age = 0;
     ship.lastFiredAt = this.scene.time.now + Phaser.Math.Between(200, 600);
-    // Dive out then bank toward the player.
-    ship.setVelocity(side * 40, this.speed * 0.6);
+
+    // Pop out of the wing bay, then dive.
+    this.scene.tweens.add({
+      targets: ship,
+      scale: this.scale,
+      alpha: 1,
+      x: x + side * 28,
+      y: y + 36,
+      duration: 280,
+      ease: 'Back.easeOut',
+      onComplete: () => {
+        if (!ship.active || !this.scene || !this.scene.sys || !this.scene.sys.isActive()) return;
+        if (this.scene._restarting) return;
+        ship.body.moves = true;
+        ship.body.reset(ship.x, ship.y);
+        ship.setVelocity(side * 40, this.speed * 0.6);
+      },
+    });
   }
 
   /**

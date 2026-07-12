@@ -11,6 +11,25 @@ class GameScene extends Phaser.Scene {
     const { width, height } = this.scale;
     this.sceneData = data;
 
+    // Phaser reuses this scene instance on restart — drop stale UI refs first.
+    this.shotLabel = null;
+    this.hitsLabel = null;
+    this.playerHpFill = null;
+    this.playerHpText = null;
+    this.shieldLabel = null;
+    this.powerFill = null;
+    this.powerLabel = null;
+    this.comboLabel = null;
+    this.bossHpFill = null;
+    this.bossHpText = null;
+    this.laser = null;
+    this.bossArms = null;
+    this.minions = null;
+    this.shield = null;
+    this.powerPellets = null;
+    this.bossBullets = null;
+    this.homingBlasts = [];
+
     // Safety net — never render Phaser's green __MISSING texture.
     PaperTextures.ensureAll(this);
 
@@ -106,6 +125,15 @@ class GameScene extends Phaser.Scene {
     this.maxHits = (GameConfig.player && GameConfig.player.maxHits) || 6;
     this.projectileDamage = (GameConfig.projectile && GameConfig.projectile.damage) || 5;
 
+    const laserCfg = GameConfig.laser || {};
+    this.laserDamage = laserCfg.damage != null ? laserCfg.damage : 100;
+    this.laserActiveMs = laserCfg.activeMs != null ? laserCfg.activeMs : 5000;
+    this.laserCooldownMs = laserCfg.cooldownMs != null ? laserCfg.cooldownMs : 20000;
+    this.laserTickMs = laserCfg.tickMs != null ? laserCfg.tickMs : 200;
+    this.laserFuelMs = this.laserActiveMs;
+    this.laserCooldownUntil = 0;
+    this.laserNextTickAt = 0;
+
     this.physics.add.overlap(this.player, this.bossBullets.group, (player, bullet) => {
       this._onPlayerHitByBullet(player, bullet);
     });
@@ -123,21 +151,17 @@ class GameScene extends Phaser.Scene {
       this._registerComboHit();
     });
 
-    // Main weapon: 'projectile' or 'laser' — toggled with L.
-    this.weapon = 'projectile';
-
+    // Space / click fire projectiles. Hold L to activate the flaming paper laser.
     this.shooting = false;
+    this.laserHeld = false;
     this.spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+    this.laserKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.L);
     this.spaceKey.on('down', () => { this.shooting = true; });
-    this.spaceKey.on('up', () => {
-      this.shooting = false;
-      if (!this.firing) this.laser.hide();
-    });
-
-    this.input.keyboard.on('keydown-L', () => {
-      this.weapon = this.weapon === 'projectile' ? 'laser' : 'projectile';
+    this.spaceKey.on('up', () => { this.shooting = false; });
+    this.laserKey.on('down', () => { this.laserHeld = true; });
+    this.laserKey.on('up', () => {
+      this.laserHeld = false;
       this.laser.hide();
-      this._updateShotLabel();
     });
 
     // Number keys 1..9 lock a projectile type; 0 returns to random.
@@ -145,26 +169,21 @@ class GameScene extends Phaser.Scene {
     this.input.keyboard.on('keydown', (event) => {
       if (event.key === '0') {
         this.projectiles.setRandom();
-        this.weapon = 'projectile';
         this._updateShotLabel();
         return;
       }
       const n = parseInt(event.key, 10);
       if (n >= 1 && n <= types.length && this.projectiles.setType(types[n - 1])) {
-        this.weapon = 'projectile';
         this._updateShotLabel();
       }
     });
 
-    // Mouse / pointer fires the active weapon too
+    // Mouse / pointer also fires projectiles
     this.firing = false;
     this.input.on('pointerdown', () => { this.firing = true; });
-    this.input.on('pointerup', () => {
-      this.firing = false;
-      if (!this.shooting) this.laser.hide();
-    });
+    this.input.on('pointerup', () => { this.firing = false; });
 
-    this.add.text(12, 12, 'WASD / arrows · Space · L laser · Enter from title', {
+    this.add.text(12, 12, 'WASD / arrows · Space fire · Hold L flame laser', {
       fontFamily: 'Georgia, serif',
       fontSize: '14px',
       color: '#b8a890',
@@ -182,7 +201,6 @@ class GameScene extends Phaser.Scene {
       fontSize: '13px',
       color: '#e8a060',
     }).setOrigin(1, 0).setDepth(100).setScrollFactor(0);
-    this._updateHitsLabel();
 
     // Player hull meter — bottom center of the playfield.
     const pBarW = Math.min(300, width - 140);
@@ -196,6 +214,8 @@ class GameScene extends Phaser.Scene {
       fontSize: '11px',
       color: '#e8dcc6',
     }).setOrigin(0.5).setDepth(102).setScrollFactor(0);
+    // Hits label + hull bar after both exist (restart reuses this scene instance).
+    this._updateHitsLabel();
     this._updatePlayerHpBar();
 
     this.shieldLabel = this.add.text(width - 12, 52, '', {
@@ -261,6 +281,8 @@ class GameScene extends Phaser.Scene {
   }
 
   update(time, delta) {
+    if (this._restarting || !this.sys || !this.sys.isActive()) return;
+
     this.parallax.update(delta, 0.15, 1);
     this.projectiles.update(delta);
     this.bossBullets.update(delta);
@@ -318,20 +340,19 @@ class GameScene extends Phaser.Scene {
       this._breakCombo();
     }
 
+    // Hold L → flaming paper laser. Space / click → projectiles.
+    if (!this.playerDead && this.laserHeld) {
+      this._tryFireLaser(time, delta);
+    } else {
+      this.laser.hide();
+    }
+
     const triggerHeld = (this.shooting || this.firing) && !this.playerDead;
     if (triggerHeld) {
-      if (this.weapon === 'laser') {
-        if (this.bossDefeated) {
-          this.laser.hide();
-        } else {
-          // Beam from ship center to boss center; tip tracks every frame.
-          this.laser.update(this.player.x, this.player.y, this.boss.x, this.boss.y);
-        }
-      } else {
-        // Volley from both wing muzzles, travelling straight up.
-        this.projectiles.fireVolley(this.player.getMuzzles());
-      }
+      this.projectiles.fireVolley(this.player.getMuzzles());
     }
+
+    this._updateShotLabel();
 
     this.shield.update(time, delta);
     this._updateShieldLabel();
@@ -389,7 +410,9 @@ class GameScene extends Phaser.Scene {
   _applyPlayerDamage(x, y) {
     if (this.playerDead) return;
 
+    // Any real hit attempt breaks the combo chain.
     if (this.shield.isActive()) {
+      this._breakCombo();
       this.shield.absorbHit();
       this._updateShieldLabel();
       return;
@@ -424,41 +447,106 @@ class GameScene extends Phaser.Scene {
   }
 
   _updateShotLabel() {
-    if (!this.shotLabel) return;
-    if (this.weapon === 'laser') {
-      this.shotLabel.setText('Weapon: paper laser');
+    if (!this.shotLabel || !this.shotLabel.scene) return;
+    const time = this.time ? this.time.now : 0;
+    const cooling = time < this.laserCooldownUntil;
+    let laserStatus;
+    if (cooling) {
+      const left = Math.max(0, Math.ceil((this.laserCooldownUntil - time) / 1000));
+      laserStatus = `Laser cooling ${left}s`;
+    } else {
+      const fuelSec = Math.max(0, this.laserFuelMs / 1000).toFixed(1);
+      laserStatus = `Laser ${fuelSec}s`;
+    }
+
+    if (this.projectiles && this.projectiles.randomize) {
+      this.shotLabel.setText(`Shot: random · ${laserStatus}`);
       return;
     }
-    if (this.projectiles.randomize) {
-      this.shotLabel.setText('Shot: random');
+    const type = this.projectiles && this.projectiles.currentType;
+    const shot = type ? `Shot: ${type}` : 'Shot: projectile';
+    this.shotLabel.setText(`${shot} · ${laserStatus}`);
+  }
+
+  /**
+   * Flaming paper laser — drains a 5s fuel tank, then 20s cooldown.
+   * Deals laser.damage DPS while the beam is on the boss.
+   */
+  _tryFireLaser(time, delta) {
+    if (this.bossDefeated || !this.boss || !this.boss.visible) {
+      if (this.laser) this.laser.hide();
       return;
     }
-    const type = this.projectiles.currentType;
-    this.shotLabel.setText(type ? `Shot: ${type}` : 'Shot: projectile');
+
+    if (time < this.laserCooldownUntil) {
+      if (this.laser) this.laser.hide();
+      return;
+    }
+
+    if (this.laserFuelMs <= 0) {
+      if (this.laser) this.laser.hide();
+      this.laserCooldownUntil = time + this.laserCooldownMs;
+      this.laserFuelMs = this.laserActiveMs;
+      this._updateShotLabel();
+      return;
+    }
+
+    this.laser.update(this.player.x, this.player.y, this.boss.x, this.boss.y, delta);
+    this.laserFuelMs = Math.max(0, this.laserFuelMs - delta);
+
+    if (this.laserFuelMs <= 0) {
+      this.laser.hide();
+      this.laserCooldownUntil = time + this.laserCooldownMs;
+      this.laserFuelMs = this.laserActiveMs;
+      this._updateShotLabel();
+      return;
+    }
+
+    if (time >= this.laserNextTickAt) {
+      this.laserNextTickAt = time + this.laserTickMs;
+      this._applyLaserDamage();
+    }
+  }
+
+  /** Apply laser DPS tick against the boss. */
+  _applyLaserDamage() {
+    if (!this.boss || !this.boss.visible || this.bossDefeated) return;
+    if (!this.laser || !this.laser.active) return;
+
+    const dmg = Math.max(1, Math.round(this.laserDamage * (this.laserTickMs / 1000)));
+    this.sparks.burst(
+      this.boss.x + Phaser.Math.Between(-18, 18),
+      this.boss.y + Phaser.Math.Between(-14, 14)
+    );
+    this._registerComboHit();
+    const remaining = this.boss.takeDamage(dmg);
+    this._updateBossHpBar();
+    if (remaining <= 0) this._defeatBoss();
   }
 
   _updateHitsLabel() {
-    if (!this.hitsLabel) return;
+    if (!this.hitsLabel || !this.hitsLabel.scene) return;
     const left = Math.max(0, this.maxHits - this.hitsTaken);
     this.hitsLabel.setText(`Hull: ${left} / ${this.maxHits}`);
     this._updatePlayerHpBar();
   }
 
   _updatePlayerHpBar() {
-    if (!this.playerHpFill) return;
+    // Scene restart reuses this instance — ignore destroyed leftovers from the prior run.
+    if (!this.playerHpFill || !this.playerHpFill.scene) return;
     const left = Math.max(0, this.maxHits - this.hitsTaken);
     const ratio = this.maxHits > 0 ? left / this.maxHits : 0;
     this.playerHpFill.width = this.playerHpBarW * ratio;
     // Green → amber → red as hull drops.
     const color = ratio > 0.55 ? 0x7dcea0 : ratio > 0.25 ? 0xe8a060 : 0xd05a46;
     this.playerHpFill.setFillStyle(color);
-    if (this.playerHpText) {
+    if (this.playerHpText && this.playerHpText.scene) {
       this.playerHpText.setText(`HULL  ${left} / ${this.maxHits}`);
     }
   }
 
   _updateComboLabel() {
-    if (!this.comboLabel) return;
+    if (!this.comboLabel || !this.comboLabel.scene) return;
     if (this.combo >= 2) {
       this.comboLabel.setText(`Combo x${this.combo}`);
     } else {
@@ -473,7 +561,7 @@ class GameScene extends Phaser.Scene {
     this._updateComboLabel();
 
     // Quick pulse so building the chain feels punchy.
-    if (this.combo >= 2) {
+    if (this.combo >= 2 && this.comboLabel && this.comboLabel.scene) {
       this.comboLabel.setScale(1.35);
       this.tweens.add({
         targets: this.comboLabel,
@@ -491,19 +579,19 @@ class GameScene extends Phaser.Scene {
   }
 
   _updateShieldLabel() {
-    if (!this.shieldLabel) return;
+    if (!this.shieldLabel || !this.shieldLabel.scene) return;
     const text = this.shield.isActive() ? `Shield: ${this.shield.hitsLeft} / ${this.shield.maxHits}` : '';
     if (this.shieldLabel.text !== text) this.shieldLabel.setText(text);
   }
 
   _updatePowerMeter() {
-    if (!this.powerFill) return;
+    if (!this.powerFill || !this.powerFill.scene) return;
     const ratio = this.powerCharge / this.powerMax;
     const h = Math.max(2, this.powerBarH * ratio);
     // setSize is required — assigning .height alone can leave Phaser rectangles stale.
     this.powerFill.setSize(10, h);
     this.powerFill.setDisplaySize(10, h);
-    if (this.powerLabel) {
+    if (this.powerLabel && this.powerLabel.scene) {
       this.powerLabel.setText(this.powerCharge > 0 ? `${this.powerCharge}/${this.powerMax}` : 'POWER');
     }
   }
@@ -618,16 +706,26 @@ class GameScene extends Phaser.Scene {
   }
 
   _updateBossHpBar() {
-    if (!this.bossHpFill) return;
+    if (!this.bossHpFill || !this.bossHpFill.scene) return;
     const ratio = this.boss.maxHp > 0 ? this.boss.hp / this.boss.maxHp : 0;
     this.bossHpFill.width = this.bossHpBarW * ratio;
-    this.bossHpText.setText(`${this.boss.hp} / ${this.boss.maxHp}`);
+    if (this.bossHpText && this.bossHpText.scene) {
+      this.bossHpText.setText(`${this.boss.hp} / ${this.boss.maxHp}`);
+    }
   }
 
   _onRestartKey() {
     if (this._restarting) return;
+    if (!this.sys || !this.sys.isActive()) return;
     if (!this.playerDead && !this.bossDefeated) return;
     this._restarting = true;
+    this.laserHeld = false;
+    this.shooting = false;
+    this.firing = false;
+    // Stop live systems immediately so nothing races the scene restart.
+    try { this.tweens.killAll(); } catch (e) { /* */ }
+    try { this.time.removeAllEvents(); } catch (e) { /* */ }
+    try { if (this.bossArms) this.bossArms.destroyed = true; } catch (e) { /* */ }
     this.scene.restart(this.sceneData);
   }
 
@@ -637,34 +735,92 @@ class GameScene extends Phaser.Scene {
    */
   shutdown() {
     this._restarting = true;
-    this.input.keyboard.off('keydown-R', this._onRestartKey, this);
+    this.laserHeld = false;
+    this.shooting = false;
+    this.firing = false;
 
-    if (this.homingBlasts) {
-      this.homingBlasts.forEach((blast) => {
-        if (blast && blast._flashEvent) blast._flashEvent.remove(false);
-        if (blast && blast.destroy) blast.destroy();
-      });
-      this.homingBlasts = [];
-    }
+    try {
+      if (this.input && this.input.keyboard) {
+        this.input.keyboard.off('keydown-R', this._onRestartKey, this);
+      }
+    } catch (e) { /* keyboard already gone */ }
 
-    if (this.bossArms) {
-      this.bossArms.destroy();
-      this.bossArms = null;
-    }
-    if (this.bossBullets && this.bossBullets.destroy) this.bossBullets.destroy();
-    if (this.shield && this.shield.destroy) this.shield.destroy();
-    if (this.minions && this.minions.destroy) this.minions.destroy();
-    if (this.powerPellets && this.powerPellets.destroy) this.powerPellets.destroy();
+    try {
+      if (this.homingBlasts) {
+        this.homingBlasts.forEach((blast) => {
+          if (blast && blast._flashEvent) {
+            try { blast._flashEvent.remove(false); } catch (e) { /* */ }
+          }
+          if (blast && blast.destroy) {
+            try { blast.destroy(); } catch (e) { /* */ }
+          }
+        });
+        this.homingBlasts = [];
+      }
+    } catch (e) { /* */ }
 
-    if (this.player && window.DropShadow) DropShadow.destroy(this.player);
-    if (this.projectiles && this.projectiles.group) {
-      this.projectiles.group.children.each((shot) => {
-        if (window.DropShadow) DropShadow.destroy(shot);
-      });
-    }
+    try {
+      if (this.bossArms) {
+        this.bossArms.destroy();
+        this.bossArms = null;
+      }
+    } catch (e) { /* */ }
 
-    this.tweens.killAll();
-    this.time.removeAllEvents();
+    try {
+      if (this.laser && this.laser.destroy) this.laser.destroy();
+    } catch (e) { /* */ }
+
+    try {
+      if (this.boss && this.boss._flashTimer) {
+        this.boss._flashTimer.remove(false);
+        this.boss._flashTimer = null;
+      }
+      if (this.boss && this.boss._flashTween) {
+        this.boss._flashTween.stop();
+        this.boss._flashTween = null;
+      }
+    } catch (e) { /* */ }
+
+    try { if (this.bossBullets && this.bossBullets.destroy) this.bossBullets.destroy(); } catch (e) { /* */ }
+    try { if (this.shield && this.shield.destroy) this.shield.destroy(); } catch (e) { /* */ }
+    try { if (this.minions && this.minions.destroy) this.minions.destroy(); } catch (e) { /* */ }
+    try { if (this.powerPellets && this.powerPellets.destroy) this.powerPellets.destroy(); } catch (e) { /* */ }
+
+    try {
+      if (this.player && window.DropShadow) DropShadow.destroy(this.player);
+    } catch (e) { /* */ }
+
+    try {
+      if (this.projectiles && this.projectiles.group) {
+        this.projectiles.group.children.each((shot) => {
+          if (window.DropShadow) DropShadow.destroy(shot);
+        });
+      }
+    } catch (e) { /* */ }
+
+    try { this.tweens.killAll(); } catch (e) { /* */ }
+    try { this.time.removeAllEvents(); } catch (e) { /* */ }
+
+    // Drop UI refs so the next create() cannot touch destroyed Text canvases.
+    this.shotLabel = null;
+    this.hitsLabel = null;
+    this.playerHpFill = null;
+    this.playerHpText = null;
+    this.shieldLabel = null;
+    this.powerFill = null;
+    this.powerLabel = null;
+    this.comboLabel = null;
+    this.bossHpFill = null;
+    this.bossHpText = null;
+    this.laser = null;
+    this.bossArms = null;
+    this.minions = null;
+    this.shield = null;
+    this.powerPellets = null;
+    this.bossBullets = null;
+    this.homingBlasts = [];
+    this.player = null;
+    this.boss = null;
   }
 
   _defeatBoss() {

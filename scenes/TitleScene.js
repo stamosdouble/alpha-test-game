@@ -97,7 +97,7 @@ class TitleScene extends Phaser.Scene {
       ease: 'Sine.easeInOut',
     });
 
-    this.add.text(width / 2, height * 0.88, 'Arrows / WASD · Space fire · L laser · 1-4 shot · 0 random', {
+    this.add.text(width / 2, height * 0.88, 'Arrows / WASD · Space fire · Hold L flame laser · 1-4 shot · 0 random', {
       fontFamily: 'Georgia, "Times New Roman", serif',
       fontSize: '12px',
       color: '#7a7060',
