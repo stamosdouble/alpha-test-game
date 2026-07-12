@@ -41,6 +41,7 @@ const PaperTextures = {
     need(cfg.laser?.tipKey || 'impact_tip', (s, k) => this.makeTip(s, k));
     need(cfg.boss?.arms?.segKey || 'boss_arm_seg', (s, k) => this.makeBossArmSeg(s, k));
     need(cfg.boss?.arms?.clawKey || 'boss_claw', (s, k) => this.makeBossClaw(s, k));
+    need(cfg.boss?.arms?.missiles?.key || 'arm_missile', (s, k) => this.makeArmMissile(s, k));
 
     (cfg.bossParts || []).forEach((name) => {
       const key = `boss_part_${name}`;
@@ -497,6 +498,60 @@ const PaperTextures = {
     ctx.fillStyle = 'rgb(210, 170, 100)';
     ctx.beginPath();
     ctx.arc(32, 12, 3.5, 0, Math.PI * 2);
+    ctx.fill();
+
+    scene.textures.addCanvas(key, canvas);
+  },
+
+  /** Homing missile fired from boss claw tips. */
+  makeArmMissile(scene, key) {
+    const w = 28;
+    const h = 48;
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    const paper = document.createElement('canvas');
+    paper.width = w;
+    paper.height = h;
+    this._paperFill(paper.getContext('2d'), w, h, [200, 70, 55], 10);
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(w / 2, 2);
+    ctx.lineTo(w - 3, 18);
+    ctx.lineTo(w - 5, h - 4);
+    ctx.lineTo(5, h - 4);
+    ctx.lineTo(3, 18);
+    ctx.closePath();
+    ctx.clip();
+    ctx.drawImage(paper, 0, 0);
+    ctx.restore();
+
+    ctx.strokeStyle = 'rgba(60, 25, 18, 0.95)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(w / 2, 2);
+    ctx.lineTo(w - 3, 18);
+    ctx.lineTo(w - 5, h - 4);
+    ctx.lineTo(5, h - 4);
+    ctx.lineTo(3, 18);
+    ctx.closePath();
+    ctx.stroke();
+
+    // Nose tip
+    ctx.fillStyle = 'rgb(255, 210, 120)';
+    ctx.beginPath();
+    ctx.moveTo(w / 2, 2);
+    ctx.lineTo(w / 2 + 5, 12);
+    ctx.lineTo(w / 2 - 5, 12);
+    ctx.closePath();
+    ctx.fill();
+
+    // Exhaust glow
+    ctx.fillStyle = 'rgba(255, 140, 60, 0.85)';
+    ctx.beginPath();
+    ctx.ellipse(w / 2, h - 2, 5, 3, 0, 0, Math.PI * 2);
     ctx.fill();
 
     scene.textures.addCanvas(key, canvas);
