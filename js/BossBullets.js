@@ -58,43 +58,56 @@ class BossBullets {
     const pattern = this.patterns[this.patternIndex];
     this.patternIndex = (this.patternIndex + 1) % this.patterns.length;
 
-    if (pattern === 'ring') this.fireRing(boss.x, boss.y);
-    else if (pattern === 'fan') this.fireFan(boss.x, boss.y);
-    else this.fireSpiral(boss.x, boss.y);
+    if (pattern === 'ring') this.fireRing();
+    else if (pattern === 'fan') this.fireFan();
+    else this.fireSpiral();
   }
 
-  /** Even ring of bullets in all directions; offset rotates per wave. */
-  fireRing(x, y) {
+  /** Current world muzzle points on the boss. */
+  _muzzles() {
+    const boss = this.scene.boss;
+    return boss && boss.getMuzzles ? boss.getMuzzles() : [{ x: boss.x, y: boss.y }];
+  }
+
+  /** Even ring of bullets, alternating between muzzles; offset rotates per wave. */
+  fireRing() {
+    const muzzles = this._muzzles();
     this.spiralPhase += 0.35;
     for (let i = 0; i < this.ringCount; i++) {
       const angle = (i / this.ringCount) * Math.PI * 2 + this.spiralPhase;
-      this.spawn(x, y, angle, this.speed);
+      const m = muzzles[i % muzzles.length];
+      this.spawn(m.x, m.y, angle, this.speed);
     }
   }
 
-  /** Fan of bullets aimed at the player with slight spread. */
-  fireFan(x, y) {
+  /** Fan of bullets aimed at the player, fired from every muzzle. */
+  fireFan() {
     const player = this.scene.player;
-    const aim = player
-      ? Math.atan2(player.y - y, player.x - x)
-      : Math.PI / 2;
 
-    for (let i = 0; i < this.fanCount; i++) {
-      const t = this.fanCount === 1 ? 0.5 : i / (this.fanCount - 1);
-      const angle = aim + (t - 0.5) * this.fanSpreadRad;
-      this.spawn(x, y, angle, this.speed * 1.35);
-    }
+    this._muzzles().forEach((m) => {
+      const aim = player
+        ? Math.atan2(player.y - m.y, player.x - m.x)
+        : Math.PI / 2;
+
+      for (let i = 0; i < this.fanCount; i++) {
+        const t = this.fanCount === 1 ? 0.5 : i / (this.fanCount - 1);
+        const angle = aim + (t - 0.5) * this.fanSpreadRad;
+        this.spawn(m.x, m.y, angle, this.speed * 1.35);
+      }
+    });
   }
 
-  /** Bullets emitted one-by-one along a rotating angle — spiral stream. */
-  fireSpiral(x, y) {
+  /** Bullets emitted one-by-one along a rotating angle, alternating muzzles. */
+  fireSpiral() {
     const golden = 2.399963; // radians; produces a pleasing non-repeating spiral
     for (let i = 0; i < this.spiralCount; i++) {
       this.scene.time.delayedCall((i / this.spiralCount) * this.spiralDurationMs, () => {
         const boss = this.scene.boss;
         if (!boss || !boss.visible) return;
+        const muzzles = this._muzzles();
+        const m = muzzles[i % muzzles.length];
         this.spiralPhase += golden * 0.25;
-        this.spawn(boss.x, boss.y, this.spiralPhase, this.speed * 0.9);
+        this.spawn(m.x, m.y, this.spiralPhase, this.speed * 0.9);
       });
     }
   }
