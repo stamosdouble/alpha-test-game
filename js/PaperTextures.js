@@ -738,32 +738,79 @@ const PaperTextures = {
       this._paperFill(paper.getContext('2d'), size, size, [195, 175, 140], 14);
       ctx.save();
       ctx.beginPath();
-      // Wide warship wingspan — tips reach the canvas edge.
+      // Extra-long wingspan with propellers + minion hangar bays.
       if (left) {
-        ctx.moveTo(118, 78); ctx.lineTo(118, 178); ctx.lineTo(42, 220); ctx.lineTo(8, 205);
-        ctx.lineTo(2, 168); ctx.lineTo(4, 118); ctx.lineTo(22, 72); ctx.lineTo(58, 52); ctx.lineTo(95, 60);
+        ctx.moveTo(122, 72); ctx.lineTo(122, 172); ctx.lineTo(70, 198); ctx.lineTo(28, 228);
+        ctx.lineTo(6, 214); ctx.lineTo(1, 175); ctx.lineTo(2, 125); ctx.lineTo(14, 78);
+        ctx.lineTo(40, 48); ctx.lineTo(78, 42); ctx.lineTo(108, 55);
       } else {
-        ctx.moveTo(138, 78); ctx.lineTo(138, 178); ctx.lineTo(214, 220); ctx.lineTo(248, 205);
-        ctx.lineTo(254, 168); ctx.lineTo(252, 118); ctx.lineTo(234, 72); ctx.lineTo(198, 52); ctx.lineTo(161, 60);
+        ctx.moveTo(134, 72); ctx.lineTo(134, 172); ctx.lineTo(186, 198); ctx.lineTo(228, 228);
+        ctx.lineTo(250, 214); ctx.lineTo(255, 175); ctx.lineTo(254, 125); ctx.lineTo(242, 78);
+        ctx.lineTo(216, 48); ctx.lineTo(178, 42); ctx.lineTo(148, 55);
       }
       ctx.closePath();
       ctx.clip();
       ctx.drawImage(paper, 0, 0);
       ctx.restore();
 
-      // Drawn muzzle barrel at the tip.
-      const mx = left ? 10 : 246;
-      const my = 178;
+      // Rivet rows along the spar.
+      ctx.fillStyle = 'rgba(110, 90, 70, 0.95)';
+      if (left) {
+        for (let x = 28; x < 118; x += 14) {
+          ctx.beginPath(); ctx.arc(x, 100 + (118 - x) / 8, 3, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.arc(x + 4, 148 + (118 - x) / 10, 3, 0, Math.PI * 2); ctx.fill();
+        }
+      } else {
+        for (let x = 138; x < 230; x += 14) {
+          ctx.beginPath(); ctx.arc(x, 100 + (x - 138) / 8, 3, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.arc(x - 4, 148 + (x - 138) / 10, 3, 0, Math.PI * 2); ctx.fill();
+        }
+      }
+
+      // Minion bay opening in the wing.
+      ctx.fillStyle = 'rgb(40, 32, 28)';
+      ctx.beginPath();
+      if (left) {
+        ctx.moveTo(55, 155); ctx.lineTo(95, 150); ctx.lineTo(95, 172); ctx.lineTo(55, 178);
+      } else {
+        ctx.moveTo(161, 150); ctx.lineTo(201, 155); ctx.lineTo(201, 178); ctx.lineTo(161, 172);
+      }
+      ctx.closePath();
+      ctx.fill();
+
+      // Propeller nacelle near the tip.
+      const px = left ? 16 : 240;
+      const py = 168;
+      ctx.fillStyle = 'rgb(120, 100, 80)';
+      ctx.beginPath(); ctx.ellipse(px, py, 18, 14, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = 'rgba(55, 40, 30, 0.9)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      for (let i = 0; i < 4; i++) {
+        const ang = 0.35 + (i * Math.PI) / 2;
+        ctx.moveTo(px, py);
+        ctx.lineTo(px + Math.cos(ang) * 22, py + Math.sin(ang) * 8);
+      }
+      ctx.stroke();
       ctx.fillStyle = 'rgb(70, 55, 40)';
-      ctx.beginPath(); ctx.arc(mx, my, 12, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(px, py, 7, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = 'rgb(210, 170, 90)';
+      ctx.beginPath(); ctx.arc(px, py, 3, 0, Math.PI * 2); ctx.fill();
+
+      // Gun muzzle at trailing tip.
+      const mx = left ? 22 : 234;
+      const my = 210;
+      ctx.fillStyle = 'rgb(70, 55, 40)';
+      ctx.beginPath(); ctx.arc(mx, my, 10, 0, Math.PI * 2); ctx.fill();
       ctx.fillStyle = 'rgb(35, 28, 22)';
-      ctx.beginPath(); ctx.arc(mx, my, 7, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(mx, my, 6, 0, Math.PI * 2); ctx.fill();
       ctx.fillStyle = 'rgb(210, 160, 70)';
-      ctx.beginPath(); ctx.arc(mx, my, 5, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = 'rgb(25, 20, 15)';
-      ctx.beginPath(); ctx.arc(mx, my + 1, 2, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(mx, my, 4, 0, Math.PI * 2); ctx.fill();
     } else if (name === 'rivets') {
-      const spots = [[100, 80], [128, 70], [156, 80], [110, 120], [146, 120], [128, 150], [100, 170], [156, 170]];
+      const spots = [
+        [100, 80], [128, 70], [156, 80], [110, 120], [146, 120], [128, 150], [100, 170], [156, 170],
+        [72, 110], [184, 110], [64, 150], [192, 150], [88, 95], [168, 95],
+      ];
       spots.forEach(([x, y]) => {
         ctx.fillStyle = 'rgba(120, 100, 80, 0.9)';
         ctx.beginPath();

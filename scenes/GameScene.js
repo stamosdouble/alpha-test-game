@@ -261,6 +261,8 @@ class GameScene extends Phaser.Scene {
   }
 
   update(time, delta) {
+    if (this._restarting || !this.sys || !this.sys.isActive()) return;
+
     this.parallax.update(delta, 0.15, 1);
     this.projectiles.update(delta);
     this.bossBullets.update(delta);
@@ -691,8 +693,16 @@ class GameScene extends Phaser.Scene {
 
   _onRestartKey() {
     if (this._restarting) return;
+    if (!this.sys || !this.sys.isActive()) return;
     if (!this.playerDead && !this.bossDefeated) return;
     this._restarting = true;
+    this.laserHeld = false;
+    this.shooting = false;
+    this.firing = false;
+    // Stop live systems immediately so nothing races the scene restart.
+    try { this.tweens.killAll(); } catch (e) { /* */ }
+    try { this.time.removeAllEvents(); } catch (e) { /* */ }
+    try { if (this.bossArms) this.bossArms.destroyed = true; } catch (e) { /* */ }
     this.scene.restart(this.sceneData);
   }
 
@@ -702,34 +712,71 @@ class GameScene extends Phaser.Scene {
    */
   shutdown() {
     this._restarting = true;
-    this.input.keyboard.off('keydown-R', this._onRestartKey, this);
+    this.laserHeld = false;
+    this.shooting = false;
+    this.firing = false;
 
-    if (this.homingBlasts) {
-      this.homingBlasts.forEach((blast) => {
-        if (blast && blast._flashEvent) blast._flashEvent.remove(false);
-        if (blast && blast.destroy) blast.destroy();
-      });
-      this.homingBlasts = [];
-    }
+    try {
+      if (this.input && this.input.keyboard) {
+        this.input.keyboard.off('keydown-R', this._onRestartKey, this);
+      }
+    } catch (e) { /* keyboard already gone */ }
 
-    if (this.bossArms) {
-      this.bossArms.destroy();
-      this.bossArms = null;
-    }
-    if (this.bossBullets && this.bossBullets.destroy) this.bossBullets.destroy();
-    if (this.shield && this.shield.destroy) this.shield.destroy();
-    if (this.minions && this.minions.destroy) this.minions.destroy();
-    if (this.powerPellets && this.powerPellets.destroy) this.powerPellets.destroy();
+    try {
+      if (this.homingBlasts) {
+        this.homingBlasts.forEach((blast) => {
+          if (blast && blast._flashEvent) {
+            try { blast._flashEvent.remove(false); } catch (e) { /* */ }
+          }
+          if (blast && blast.destroy) {
+            try { blast.destroy(); } catch (e) { /* */ }
+          }
+        });
+        this.homingBlasts = [];
+      }
+    } catch (e) { /* */ }
 
-    if (this.player && window.DropShadow) DropShadow.destroy(this.player);
-    if (this.projectiles && this.projectiles.group) {
-      this.projectiles.group.children.each((shot) => {
-        if (window.DropShadow) DropShadow.destroy(shot);
-      });
-    }
+    try {
+      if (this.bossArms) {
+        this.bossArms.destroy();
+        this.bossArms = null;
+      }
+    } catch (e) { /* */ }
 
-    this.tweens.killAll();
-    this.time.removeAllEvents();
+    try {
+      if (this.laser && this.laser.destroy) this.laser.destroy();
+    } catch (e) { /* */ }
+
+    try {
+      if (this.boss && this.boss._flashTimer) {
+        this.boss._flashTimer.remove(false);
+        this.boss._flashTimer = null;
+      }
+      if (this.boss && this.boss._flashTween) {
+        this.boss._flashTween.stop();
+        this.boss._flashTween = null;
+      }
+    } catch (e) { /* */ }
+
+    try { if (this.bossBullets && this.bossBullets.destroy) this.bossBullets.destroy(); } catch (e) { /* */ }
+    try { if (this.shield && this.shield.destroy) this.shield.destroy(); } catch (e) { /* */ }
+    try { if (this.minions && this.minions.destroy) this.minions.destroy(); } catch (e) { /* */ }
+    try { if (this.powerPellets && this.powerPellets.destroy) this.powerPellets.destroy(); } catch (e) { /* */ }
+
+    try {
+      if (this.player && window.DropShadow) DropShadow.destroy(this.player);
+    } catch (e) { /* */ }
+
+    try {
+      if (this.projectiles && this.projectiles.group) {
+        this.projectiles.group.children.each((shot) => {
+          if (window.DropShadow) DropShadow.destroy(shot);
+        });
+      }
+    } catch (e) { /* */ }
+
+    try { this.tweens.killAll(); } catch (e) { /* */ }
+    try { this.time.removeAllEvents(); } catch (e) { /* */ }
   }
 
   _defeatBoss() {

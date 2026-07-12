@@ -179,18 +179,40 @@ class Boss extends Phaser.GameObjects.Container {
       duration: durationMs,
       ease: 'Quad.easeOut',
       onComplete: () => {
-        overlays.forEach((flash) => flash.setVisible(false));
+        if (!this.scene || !this.scene.sys || !this.scene.sys.isActive()) return;
+        overlays.forEach((flash) => {
+          if (flash && flash.scene) flash.setVisible(false);
+        });
         this._flashTween = null;
       },
     });
 
     this._flashTimer = this.scene.time.delayedCall(durationMs + 10, () => {
+      if (!this.scene || !this.scene.sys || !this.scene.sys.isActive()) return;
       overlays.forEach((flash) => {
-        flash.setAlpha(0);
-        flash.setVisible(false);
+        if (flash && flash.scene) {
+          flash.setAlpha(0);
+          flash.setVisible(false);
+        }
       });
       this._flashTimer = null;
     });
+  }
+
+  /**
+   * World-space wing bay exits where minions launch from.
+   * Slightly inboard of the muzzle tips so fighters read as leaving the wing.
+   * @returns {{x:number, y:number}[]}
+   */
+  getWingExits() {
+    const cfg = (window.GameConfig && GameConfig.boss) || {};
+    const exits = cfg.wingExits && cfg.wingExits.length
+      ? cfg.wingExits
+      : (cfg.muzzles && cfg.muzzles.length ? cfg.muzzles : [{ x: 0, y: 0 }]);
+    return exits.map((m) => ({
+      x: this.x + m.x * this.scaleX,
+      y: this.y + m.y * this.scaleY,
+    }));
   }
 }
 

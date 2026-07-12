@@ -170,18 +170,23 @@ const GameConfig = {
     /** Descend-from-above entrance before the fight starts. */
     entranceMs: 2400,
     /** Extra local-X push for wing_l / wing_r sprites (wider wingspan). */
-    wingSpanOffset: 52,
+    wingSpanOffset: 72,
     /** Muzzle offsets (unscaled, relative to boss center) at the wing-tip barrels. */
     muzzles: [
-      { x: -166, y: 52 },
-      { x: 166, y: 52 },
+      { x: -188, y: 70 },
+      { x: 188, y: 70 },
+    ],
+    /** Minion hangar exits — fighters launch from openings in each wing. */
+    wingExits: [
+      { x: -130, y: 48 },
+      { x: 130, y: 48 },
     ],
     /** Visible-art hit ellipse (unscaled) — tighter than the container box so
      *  impacts register on the paper, not the transparent padding. */
-    hitWidth: 360,
-    hitHeight: 195,
+    hitWidth: 420,
+    hitHeight: 200,
     /** Horizontal sway across the screen while firing. */
-    swayAmplitude: 220,
+    swayAmplitude: 200,
     swaySpeed: 0.45,
     /** Mechanical grab-arms that reach down toward the player. */
     arms: {
@@ -205,8 +210,8 @@ const GameConfig = {
       headHitRadius: 48,
       /** Shoulder mounts in unscaled boss-local space. */
       shoulders: [
-        { x: -148, y: 40 },
-        { x: 148, y: 40 },
+        { x: -170, y: 42 },
+        { x: 170, y: 42 },
       ],
       /** Homing missiles launched from each claw tip. */
       missiles: {

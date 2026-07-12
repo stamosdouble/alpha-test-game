@@ -102,8 +102,11 @@ const DropShadow = {
   },
 
   destroy(sprite) {
+    if (!sprite) return;
     const shadow = sprite._dropShadow;
-    if (shadow && shadow.scene) shadow.destroy();
+    if (shadow && shadow.scene) {
+      try { shadow.destroy(); } catch (e) { /* already gone */ }
+    }
     sprite._dropShadow = null;
   },
 };
