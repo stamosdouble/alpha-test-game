@@ -1,7 +1,7 @@
 /**
- * Boss mechanical grab-arms — elastic paper limbs that can stretch the
- * full playfield height, pinch the player, and launch homing missiles
- * from each claw tip.
+ * Boss mechanical grab-arms — elastic paper limbs bolted through the
+ * hull rivets. They stretch the full playfield height, pinch the player,
+ * and launch homing missiles from each claw tip.
  *
  * Art keys (procedural by default):
  *   boss_arm_seg  — brass tube segment
@@ -37,8 +37,8 @@ class BossArms {
     if (cfg.lowerLen != null && options.restLower == null) this.restLower = cfg.lowerLen * 0.65;
 
     this.shoulders = (options.shoulders || cfg.shoulders || [
-      { x: -96, y: 36 },
-      { x: 96, y: 36 },
+      { x: -64, y: 22 },
+      { x: 64, y: 22 },
     ]).map((s) => ({ ...s }));
 
     this.segKey = cfg.segKey || 'boss_arm_seg';
