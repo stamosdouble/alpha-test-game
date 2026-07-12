@@ -21,6 +21,8 @@ class Projectiles {
     this.spinSpeed = options.spinSpeed != null ? options.spinSpeed : (cfg.spinSpeed || 4);
 
     this.usingAtlas = scene.textures.exists(this.atlasKey) && this.getTypes().length > 0;
+    this.randomize = options.randomize != null ? options.randomize : (cfg.randomize || false);
+    this.scaleJitter = options.scaleJitter != null ? options.scaleJitter : (cfg.scaleJitter || 0);
     this.currentType = null;
     if (this.usingAtlas) {
       const types = this.getTypes();
@@ -85,14 +87,20 @@ class Projectiles {
   }
 
   /**
-   * Choose which projectile design to fire next.
+   * Lock a specific projectile design.
    * @param {string} frameName a frame from the atlas (e.g. 'disc_blue')
    * @returns {boolean} true when the type exists and was selected
    */
   setType(frameName) {
     if (!this.usingAtlas || !this.getTypes().includes(frameName)) return false;
     this.currentType = frameName;
+    this.randomize = false;
     return true;
+  }
+
+  /** Fire a random atlas frame per shot. */
+  setRandom() {
+    this.randomize = true;
   }
 
   /**
@@ -112,14 +120,18 @@ class Projectiles {
     this.lastFiredAt = now;
 
     if (this.usingAtlas) {
-      shot.setTexture(this.atlasKey, this.currentType);
+      const types = this.getTypes();
+      const frame = this.randomize
+        ? types[Math.floor(Math.random() * types.length)]
+        : this.currentType;
+      shot.setTexture(this.atlasKey, frame);
     } else {
       shot.setTexture(this.fallbackKey);
     }
     shot.setActive(true);
     shot.setVisible(true);
     shot.setOrigin(0.5, 0.5);
-    shot.setScale(this.scale);
+    shot.setScale(this.scale * (1 + Phaser.Math.FloatBetween(-this.scaleJitter, this.scaleJitter)));
     shot.setDepth(15);
     shot.body.reset(x, y);
     shot.body.setAllowGravity(false);

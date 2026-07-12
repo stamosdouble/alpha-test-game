@@ -58,6 +58,13 @@ class GameScene extends Phaser.Scene {
     this.bossBullets = new BossBullets(this);
     this.hitsTaken = 0;
 
+    // Combo chain: consecutive hits on the boss build it; getting hit
+    // or going quiet for a while breaks it.
+    this.combo = 0;
+    this.bestCombo = 0;
+    this.lastComboHitAt = 0;
+    this.comboTimeoutMs = (GameConfig.combo && GameConfig.combo.timeoutMs) || 3000;
+
     this.physics.add.overlap(this.player, this.bossBullets.group, (player, bullet) => {
       if (!bullet.active || player.isInvulnerable()) return;
       this.bossBullets.group.killAndHide(bullet);
@@ -65,6 +72,7 @@ class GameScene extends Phaser.Scene {
       this.sparks.burst(player.x, player.y);
       player.onHit();
       this.hitsTaken += 1;
+      this._breakCombo();
       this._updateHitsLabel();
     });
 
@@ -85,9 +93,15 @@ class GameScene extends Phaser.Scene {
       this._updateShotLabel();
     });
 
-    // Number keys 1..9 switch projectile type (atlas frame order).
+    // Number keys 1..9 lock a projectile type; 0 returns to random.
     const types = this.projectiles.getTypes();
     this.input.keyboard.on('keydown', (event) => {
+      if (event.key === '0') {
+        this.projectiles.setRandom();
+        this.weapon = 'projectile';
+        this._updateShotLabel();
+        return;
+      }
       const n = parseInt(event.key, 10);
       if (n >= 1 && n <= types.length && this.projectiles.setType(types[n - 1])) {
         this.weapon = 'projectile';
@@ -103,7 +117,7 @@ class GameScene extends Phaser.Scene {
       if (!this.shooting) this.laser.hide();
     });
 
-    this.add.text(12, 12, 'Arrows / WASD move · Space or click fires · L swaps weapon · 1-4 shot type', {
+    this.add.text(12, 12, 'Arrows / WASD move · Space or click fires · L swaps weapon · 1-4 shot type · 0 random', {
       fontFamily: 'Georgia, serif',
       fontSize: '14px',
       color: '#b8a890',
@@ -122,6 +136,13 @@ class GameScene extends Phaser.Scene {
       color: '#e8a060',
     }).setOrigin(1, 0).setDepth(100).setScrollFactor(0);
     this._updateHitsLabel();
+
+    this.comboLabel = this.add.text(width / 2, 52, '', {
+      fontFamily: 'Georgia, serif',
+      fontSize: '24px',
+      color: '#f0c542',
+    }).setOrigin(0.5, 0).setDepth(100).setScrollFactor(0);
+    this._updateComboLabel();
 
     const footer = (data && data.usedEmbeddedOnly && window.location.protocol === 'file:')
       ? 'file:// mode — embedded placeholders. Use npm start to load /assets PNGs.'
@@ -146,6 +167,11 @@ class GameScene extends Phaser.Scene {
     // Boss sways back and forth across the screen while it fires.
     this.boss.x = this.bossHomeX + Math.sin((time / 1000) * this.bossSwaySpeed * Math.PI) * this.bossSwayAmplitude;
 
+    // Combo decays if no hit lands within the timeout window.
+    if (this.combo > 0 && time - this.lastComboHitAt > this.comboTimeoutMs) {
+      this._breakCombo();
+    }
+
     const triggerHeld = this.shooting || this.firing;
     if (triggerHeld) {
       if (this.weapon === 'laser') {
@@ -164,6 +190,10 @@ class GameScene extends Phaser.Scene {
       this.shotLabel.setText('Weapon: paper laser');
       return;
     }
+    if (this.projectiles.randomize) {
+      this.shotLabel.setText('Shot: random');
+      return;
+    }
     const type = this.projectiles.currentType;
     this.shotLabel.setText(type ? `Shot: ${type}` : 'Shot: projectile');
   }
@@ -171,6 +201,39 @@ class GameScene extends Phaser.Scene {
   _updateHitsLabel() {
     if (!this.hitsLabel) return;
     this.hitsLabel.setText(`Hits: ${this.hitsTaken}`);
+  }
+
+  _updateComboLabel() {
+    if (!this.comboLabel) return;
+    if (this.combo >= 2) {
+      this.comboLabel.setText(`Combo x${this.combo}`);
+    } else {
+      this.comboLabel.setText('');
+    }
+  }
+
+  _registerComboHit() {
+    this.combo += 1;
+    this.bestCombo = Math.max(this.bestCombo, this.combo);
+    this.lastComboHitAt = this.time.now;
+    this._updateComboLabel();
+
+    // Quick pulse so building the chain feels punchy.
+    if (this.combo >= 2) {
+      this.comboLabel.setScale(1.35);
+      this.tweens.add({
+        targets: this.comboLabel,
+        scale: 1,
+        duration: 180,
+        ease: 'Back.easeOut',
+      });
+    }
+  }
+
+  _breakCombo() {
+    if (this.combo === 0) return;
+    this.combo = 0;
+    this._updateComboLabel();
   }
 
   /** Pop sparks where projectiles strike the boss, then recycle the shot. */
@@ -184,6 +247,7 @@ class GameScene extends Phaser.Scene {
         this.sparks.burst(shot.x, shot.y);
         this.projectiles.group.killAndHide(shot);
         shot.body.stop();
+        this._registerComboHit();
       }
     });
   }

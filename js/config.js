@@ -20,6 +20,7 @@ const GameConfig = {
   player: {
     key: 'player_ship',
     path: 'assets/player/ship.png',
+    scale: 0.5,
     speed: 220,
     swayAmplitude: 2.5,
     swaySpeed: 3.2,
@@ -32,6 +33,10 @@ const GameConfig = {
     atlasTexturePath: 'assets/player/projectiles.png',
     atlasDataPath: 'assets/player/projectiles.json',
     defaultFrame: 'disc_red',
+    /** Fire a random atlas frame per shot (press 1-9 to lock one, 0 for random). */
+    randomize: true,
+    /** Per-shot size jitter for hand-made variety. */
+    scaleJitter: 0.18,
 
     /** Single-image fallback if the atlas is unavailable. */
     key: 'player_projectile',
@@ -54,6 +59,11 @@ const GameConfig = {
     fanSpreadRad: 0.7,
     spiralCount: 24,
     spiralDurationMs: 1100,
+  },
+
+  combo: {
+    /** Chain resets if no boss hit lands within this window, or when the player is hit. */
+    timeoutMs: 3000,
   },
 
   sparks: {
