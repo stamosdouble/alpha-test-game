@@ -49,6 +49,20 @@ class GameScene extends Phaser.Scene {
     // Yellow triangle sparks on projectile impact
     this.sparks = new Sparks(this);
 
+    // Bullet-hell waves from the boss (rings, aimed fans, spirals)
+    this.bossBullets = new BossBullets(this);
+    this.hitsTaken = 0;
+
+    this.physics.add.overlap(this.player, this.bossBullets.group, (player, bullet) => {
+      if (!bullet.active || player.isInvulnerable()) return;
+      this.bossBullets.group.killAndHide(bullet);
+      bullet.body.stop();
+      this.sparks.burst(player.x, player.y);
+      player.onHit();
+      this.hitsTaken += 1;
+      this._updateHitsLabel();
+    });
+
     this.shooting = false;
     this.spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
     this.spaceKey.on('down', () => { this.shooting = true; });
@@ -84,6 +98,13 @@ class GameScene extends Phaser.Scene {
     }).setOrigin(1, 0).setDepth(100).setScrollFactor(0);
     this._updateShotLabel();
 
+    this.hitsLabel = this.add.text(width - 12, 32, '', {
+      fontFamily: 'Georgia, serif',
+      fontSize: '13px',
+      color: '#e8a060',
+    }).setOrigin(1, 0).setDepth(100).setScrollFactor(0);
+    this._updateHitsLabel();
+
     const footer = (data && data.usedEmbeddedOnly && window.location.protocol === 'file:')
       ? 'file:// mode — embedded placeholders. Use npm start to load /assets PNGs.'
       : (data && data.usedFallbacks)
@@ -101,6 +122,7 @@ class GameScene extends Phaser.Scene {
     this.parallax.update(delta, 0.15, 1);
     this.player.update(time, delta);
     this.projectiles.update(delta);
+    this.bossBullets.update(delta);
     this._checkBossHits();
 
     if (this.shooting) {
@@ -118,6 +140,11 @@ class GameScene extends Phaser.Scene {
     if (!this.shotLabel) return;
     const type = this.projectiles.currentType;
     this.shotLabel.setText(type ? `Shot: ${type}` : '');
+  }
+
+  _updateHitsLabel() {
+    if (!this.hitsLabel) return;
+    this.hitsLabel.setText(`Hits: ${this.hitsTaken}`);
   }
 
   /** Pop sparks where projectiles strike the boss, then recycle the shot. */

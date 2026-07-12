@@ -30,7 +30,12 @@ class Player extends Phaser.GameObjects.Sprite {
 
     if (this.body) {
       this.body.setCollideWorldBounds(true);
+      // Bullet-hell style: the hurtbox is half the sprite's size, centered,
+      // so grazing the paper edges doesn't count as a hit.
+      this.body.setSize(this.width * 0.5, this.height * 0.5, true);
     }
+
+    this.invulnerableUntil = 0;
 
     this.cursors = scene.input.keyboard.createCursorKeys();
     this.wasd = scene.input.keyboard.addKeys({
@@ -96,6 +101,27 @@ class Player extends Phaser.GameObjects.Sprite {
     if (this.body) {
       this.body.reset(this.x, this.y);
     }
+  }
+
+  /** True while post-hit invulnerability frames are active. */
+  isInvulnerable() {
+    return this.scene.time.now < this.invulnerableUntil;
+  }
+
+  /**
+   * Register a hit: start invulnerability frames and blink the paper ship.
+   * @param {number} [durationMs=1200]
+   */
+  onHit(durationMs = 1200) {
+    this.invulnerableUntil = this.scene.time.now + durationMs;
+    this.scene.tweens.add({
+      targets: this,
+      alpha: 0.25,
+      duration: 90,
+      yoyo: true,
+      repeat: Math.floor(durationMs / 180),
+      onComplete: () => this.setAlpha(1),
+    });
   }
 }
 
