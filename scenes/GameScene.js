@@ -46,6 +46,9 @@ class GameScene extends Phaser.Scene {
     // Paper disc projectiles fired from the ship's nose
     this.projectiles = new Projectiles(this);
 
+    // Yellow triangle sparks on projectile impact
+    this.sparks = new Sparks(this);
+
     this.shooting = false;
     this.spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
     this.spaceKey.on('down', () => { this.shooting = true; });
@@ -82,6 +85,7 @@ class GameScene extends Phaser.Scene {
     this.parallax.update(delta, 0.15, 1);
     this.player.update(time, delta);
     this.projectiles.update(delta);
+    this._checkBossHits();
 
     if (this.shooting) {
       // Spawn at the ship's nose, travelling straight up.
@@ -92,6 +96,21 @@ class GameScene extends Phaser.Scene {
       // Beam from ship center to boss center; tip tracks every frame.
       this.laser.update(this.player.x, this.player.y, this.boss.x, this.boss.y);
     }
+  }
+
+  /** Pop sparks where projectiles strike the boss, then recycle the shot. */
+  _checkBossHits() {
+    if (!this.boss || !this.boss.visible) return;
+    const bounds = this.boss.getBounds();
+
+    this.projectiles.group.children.each((shot) => {
+      if (!shot.active) return;
+      if (bounds.contains(shot.x, shot.y)) {
+        this.sparks.burst(shot.x, shot.y);
+        this.projectiles.group.killAndHide(shot);
+        shot.body.stop();
+      }
+    });
   }
 }
 

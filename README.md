@@ -80,6 +80,7 @@ parallaxLayers: [
 | Laser tip | `assets/laser/impact_tip.png` | Centered hotspot |
 | Player | `assets/player/ship.png` | Designed around center |
 | Projectile | `assets/player/projectile.png` | Centered paper disc; scale/speed in `js/config.js` |
+| Sparks | `assets/effects/spark.png` | Yellow triangle; burst tuning in `js/config.js` |
 | Backgrounds | `assets/background/*.png` | Prefer seamless / tileable |
 
 Placeholder PNGs are included so the skeleton runs immediately. Replace them with your high-resolution scans using the same filenames (or update paths in `js/config.js` only).
