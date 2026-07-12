@@ -39,6 +39,8 @@ const PaperTextures = {
     need(cfg.minions?.bulletKey || 'green_bullet', (s, k) => this.makeGreenBullet(s, k));
     need(cfg.laser?.beamKey || 'beam_segment', (s, k) => this.makeBeam(s, k));
     need(cfg.laser?.tipKey || 'impact_tip', (s, k) => this.makeTip(s, k));
+    need(cfg.boss?.arms?.segKey || 'boss_arm_seg', (s, k) => this.makeBossArmSeg(s, k));
+    need(cfg.boss?.arms?.clawKey || 'boss_claw', (s, k) => this.makeBossClaw(s, k));
 
     (cfg.bossParts || []).forEach((name) => {
       const key = `boss_part_${name}`;
@@ -410,6 +412,93 @@ const PaperTextures = {
     ctx.beginPath();
     ctx.arc(24, 24, 22, 0, Math.PI * 2);
     ctx.fill();
+    scene.textures.addCanvas(key, canvas);
+  },
+
+  /** Brass paper tube used for boss arm segments. */
+  makeBossArmSeg(scene, key) {
+    const w = 36;
+    const h = 96;
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    const paper = document.createElement('canvas');
+    paper.width = w;
+    paper.height = h;
+    this._paperFill(paper.getContext('2d'), w, h, [168, 130, 88], 12);
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(8, 4);
+    ctx.lineTo(28, 4);
+    ctx.lineTo(32, h - 4);
+    ctx.lineTo(4, h - 4);
+    ctx.closePath();
+    ctx.clip();
+    ctx.drawImage(paper, 0, 0);
+    ctx.restore();
+    ctx.strokeStyle = 'rgba(70, 48, 28, 0.9)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    // Rivet row
+    ctx.fillStyle = 'rgba(90, 70, 45, 0.85)';
+    for (let y = 14; y < h - 10; y += 16) {
+      ctx.beginPath();
+      ctx.arc(w / 2, y, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    scene.textures.addCanvas(key, canvas);
+  },
+
+  /** Open mechanical pincer / claw. */
+  makeBossClaw(scene, key) {
+    const size = 64;
+    const canvas = document.createElement('canvas');
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext('2d');
+    const paper = document.createElement('canvas');
+    paper.width = size;
+    paper.height = size;
+    this._paperFill(paper.getContext('2d'), size, size, [150, 115, 75], 10);
+
+    const drawPincer = (sign) => {
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(32, 10);
+      ctx.lineTo(32 + sign * 6, 18);
+      ctx.lineTo(32 + sign * 22, 40);
+      ctx.lineTo(32 + sign * 18, 54);
+      ctx.lineTo(32 + sign * 8, 46);
+      ctx.lineTo(32 + sign * 4, 28);
+      ctx.closePath();
+      ctx.clip();
+      ctx.drawImage(paper, 0, 0);
+      ctx.restore();
+      ctx.strokeStyle = 'rgba(55, 38, 22, 0.95)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(32, 10);
+      ctx.lineTo(32 + sign * 6, 18);
+      ctx.lineTo(32 + sign * 22, 40);
+      ctx.lineTo(32 + sign * 18, 54);
+      ctx.lineTo(32 + sign * 8, 46);
+      ctx.lineTo(32 + sign * 4, 28);
+      ctx.closePath();
+      ctx.stroke();
+    };
+    drawPincer(-1);
+    drawPincer(1);
+    // Wrist hub
+    ctx.fillStyle = 'rgb(70, 52, 34)';
+    ctx.beginPath();
+    ctx.arc(32, 12, 7, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = 'rgb(210, 170, 100)';
+    ctx.beginPath();
+    ctx.arc(32, 12, 3.5, 0, Math.PI * 2);
+    ctx.fill();
+
     scene.textures.addCanvas(key, canvas);
   },
 

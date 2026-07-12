@@ -45,6 +45,7 @@ class GameScene extends Phaser.Scene {
       onComplete: () => {
         this.bossEntranceDone = true;
         this.swayStartTime = this.time.now;
+        if (this.bossArms) this.bossArms.arm();
         // Subtle idle bob so the paper boss feels alive
         this.tweens.add({
           targets: this.boss,
@@ -86,6 +87,9 @@ class GameScene extends Phaser.Scene {
     // Bullet-hell waves from the boss (rings, aimed fans, spirals)
     this.bossBullets = new BossBullets(this);
     this.hitsTaken = 0;
+
+    // Mechanical arms that reach down and try to grab the player.
+    this.bossArms = new BossArms(this, this.boss);
 
     // Combo chain: consecutive hits on the boss build it; getting hit
     // or going quiet for a while breaks it.
@@ -260,6 +264,16 @@ class GameScene extends Phaser.Scene {
         const t = (time - this.swayStartTime) / 1000;
         this.boss.x = this.bossHomeX + Math.sin(t * this.bossSwaySpeed * Math.PI) * this.bossSwayAmplitude;
       }
+
+      if (this.bossArms) {
+        if (this.bossEntranceDone) {
+          this.bossArms.update(time, delta, this.playerDead ? null : this.player, {
+            onGrab: (x, y) => this._onGrabbedByArm(x, y),
+          });
+        } else {
+          this.bossArms.poseOnly(time, delta);
+        }
+      }
     }
 
     // Combo decays if no hit lands within the timeout window.
@@ -302,14 +316,43 @@ class GameScene extends Phaser.Scene {
     else if (this.minions.bullets.contains(bullet)) recycle(this.minions.bullets);
     else return;
 
+    this._applyPlayerDamage(player.x, player.y);
+  }
+
+  /** Claw pinch from a boss mechanical arm. */
+  _onGrabbedByArm(x, y) {
+    if (this.playerDead || this.bossDefeated) return;
+    this.sparks.burst(x, y);
+    this._applyPlayerDamage(x, y);
+    // Brief yank toward the claw so the grab reads clearly.
+    if (this.player && this.player.active) {
+      this.tweens.add({
+        targets: this.player,
+        x: x,
+        y: Math.min(this.player.y, y + 10),
+        duration: 120,
+        yoyo: true,
+        ease: 'Back.easeOut',
+      });
+    }
+  }
+
+  /**
+   * Hull damage shared by bullets and grab-arms (shield / i-frames apply).
+   * @param {number} x
+   * @param {number} y
+   */
+  _applyPlayerDamage(x, y) {
+    if (this.playerDead) return;
+
     if (this.shield.isActive()) {
       this.shield.absorbHit();
       this._updateShieldLabel();
       return;
     }
 
-    if (player.isInvulnerable()) return;
-    this.sparks.burst(player.x, player.y);
+    if (this.player.isInvulnerable()) return;
+    this.sparks.burst(x, y);
     this.hitsTaken += 1;
     this._breakCombo();
     this._updateHitsLabel();
@@ -317,7 +360,7 @@ class GameScene extends Phaser.Scene {
     if (this.hitsTaken >= this.maxHits) {
       this._destroyPlayer();
     } else {
-      player.onHit();
+      this.player.onHit();
     }
   }
 
@@ -508,6 +551,11 @@ class GameScene extends Phaser.Scene {
   _defeatBoss() {
     if (this.bossDefeated) return;
     this.bossDefeated = true;
+
+    if (this.bossArms) {
+      this.bossArms.destroy();
+      this.bossArms = null;
+    }
 
     // Paper confetti send-off, then hide the boss.
     for (let i = 0; i < 6; i++) {
