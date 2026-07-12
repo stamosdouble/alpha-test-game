@@ -20,6 +20,8 @@ class Boss extends Phaser.GameObjects.Container {
     const cfg = (window.GameConfig && GameConfig.boss) || {};
     this.maxHp = cfg.maxHp || 1000;
     this.hp = this.maxHp;
+    this._flashTimer = null;
+    this._flashTween = null;
 
     scene.add.existing(this);
     this.assemble(this.partNames);
@@ -120,15 +122,56 @@ class Boss extends Phaser.GameObjects.Container {
     }));
   }
 
-  /** Brief white-hot flash across every part. */
-  flash(durationMs = 90) {
-    this.list.forEach((part) => {
-      if (part.setTintFill) part.setTintFill(0xfff1d6);
+  /**
+   * Bright hit flash across every hull/wing part.
+   * Uses a world-space wash (reliable on Canvas + WebGL) plus part tint when supported.
+   */
+  flash(durationMs = 160) {
+    if (this._flashTimer) {
+      this._flashTimer.remove(false);
+      this._flashTimer = null;
+    }
+    if (this._flashTween) {
+      this._flashTween.stop();
+      this._flashTween = null;
+    }
+
+    Object.values(this.partSprites).forEach((part) => {
+      if (!part) return;
+      if (part.setTintFill) part.setTintFill(0xfff6e0);
     });
-    this.scene.time.delayedCall(durationMs, () => {
-      this.list.forEach((part) => {
-        if (part.clearTint) part.clearTint();
+
+    const bounds = this.getBounds();
+    const w = Math.max(120, bounds.width * 1.08);
+    const h = Math.max(90, bounds.height * 1.08);
+    if (!this._worldFlash) {
+      this._worldFlash = this.scene.add.rectangle(this.x, this.y, w, h, 0xfff8e8, 0.8);
+      this._worldFlash.setDepth(28);
+    }
+    this._worldFlash.setPosition(this.x, this.y);
+    this._worldFlash.setSize(w, h);
+    this._worldFlash.setVisible(true);
+    this._worldFlash.setAlpha(0.85);
+    if (this._worldFlash.setBlendMode) {
+      this._worldFlash.setBlendMode(Phaser.BlendModes.ADD);
+    }
+
+    this._flashTween = this.scene.tweens.add({
+      targets: this._worldFlash,
+      alpha: 0,
+      duration: durationMs,
+      ease: 'Quad.easeOut',
+      onComplete: () => {
+        if (this._worldFlash) this._worldFlash.setVisible(false);
+        this._flashTween = null;
+      },
+    });
+
+    this._flashTimer = this.scene.time.delayedCall(durationMs, () => {
+      Object.values(this.partSprites).forEach((part) => {
+        if (part && part.clearTint) part.clearTint();
       });
+      this._flashTimer = null;
     });
   }
 }

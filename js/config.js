@@ -161,6 +161,24 @@ const GameConfig = {
     /** Horizontal sway across the screen while firing. */
     swayAmplitude: 260,
     swaySpeed: 0.45,
+    /** Mechanical grab-arms that reach down toward the player. */
+    arms: {
+      enabled: true,
+      segKey: 'boss_arm_seg',
+      clawKey: 'boss_claw',
+      intervalMs: 4200,
+      reachMs: 760,
+      holdMs: 300,
+      retractMs: 540,
+      grabRadius: 44,
+      upperLen: 110,
+      lowerLen: 100,
+      /** Shoulder mounts in unscaled boss-local space. */
+      shoulders: [
+        { x: -100, y: 40 },
+        { x: 100, y: 40 },
+      ],
+    },
   },
 };
 
