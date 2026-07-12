@@ -72,6 +72,7 @@ class PreloadScene extends Phaser.Scene {
     (cfg.parallaxLayers || []).forEach((layer) => queue(layer.key, layer.path));
     queue(cfg.player.key, cfg.player.path);
     queue(cfg.projectile.key, cfg.projectile.path);
+    queue(cfg.sparks.key, cfg.sparks.path);
     queue(cfg.laser.beamKey, cfg.laser.beamPath);
     queue(cfg.laser.tipKey, cfg.laser.tipPath);
     (cfg.bossParts || []).forEach((name) => {

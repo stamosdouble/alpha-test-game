@@ -34,6 +34,15 @@ const GameConfig = {
     spinSpeed: 4,
   },
 
+  sparks: {
+    key: 'spark',
+    path: 'assets/effects/spark.png',
+    count: 8,
+    speed: 160,
+    lifetimeMs: 450,
+    scale: 0.6,
+  },
+
   laser: {
     beamKey: 'beam_segment',
     beamPath: 'assets/laser/beam_segment.png',
