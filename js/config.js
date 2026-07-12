@@ -26,8 +26,17 @@ const GameConfig = {
   },
 
   projectile: {
+    /** Texture atlas: one PNG sheet + JSON frame data. Add new frames to
+     *  both files and they become selectable by name — no logic changes. */
+    atlasKey: 'projectiles',
+    atlasTexturePath: 'assets/player/projectiles.png',
+    atlasDataPath: 'assets/player/projectiles.json',
+    defaultFrame: 'disc_red',
+
+    /** Single-image fallback if the atlas is unavailable. */
     key: 'player_projectile',
     path: 'assets/player/projectile.png',
+
     speed: 420,
     fireRateMs: 220,
     scale: 0.35,

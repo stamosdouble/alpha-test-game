@@ -1,6 +1,9 @@
 /**
  * Player projectiles — pooled paper discs fired upward from the ship.
- * Art comes from /assets/player/projectile.png (swap the PNG freely).
+ *
+ * Uses a texture atlas (assets/player/projectiles.png + .json) so multiple
+ * projectile designs live on one sheet and are chosen by frame name via
+ * setType(). Falls back to the single projectile.png if the atlas is missing.
  */
 class Projectiles {
   /**
@@ -10,27 +13,86 @@ class Projectiles {
   constructor(scene, options = {}) {
     this.scene = scene;
     const cfg = (window.GameConfig && GameConfig.projectile) || {};
-    this.key = options.key || cfg.key || 'player_projectile';
+    this.atlasKey = options.atlasKey || cfg.atlasKey || 'projectiles';
+    this.fallbackKey = options.key || cfg.key || 'player_projectile';
     this.speed = options.speed != null ? options.speed : (cfg.speed || 420);
     this.fireRateMs = options.fireRateMs != null ? options.fireRateMs : (cfg.fireRateMs || 220);
     this.scale = options.scale != null ? options.scale : (cfg.scale || 0.35);
     this.spinSpeed = options.spinSpeed != null ? options.spinSpeed : (cfg.spinSpeed || 4);
 
+    this.usingAtlas = scene.textures.exists(this.atlasKey) && this.getTypes().length > 0;
+    this.currentType = null;
+    if (this.usingAtlas) {
+      const types = this.getTypes();
+      const preferred = options.defaultFrame || cfg.defaultFrame;
+      this.currentType = types.includes(preferred) ? preferred : types[0];
+    }
+
     this.lastFiredAt = 0;
 
     this.group = scene.physics.add.group({
-      defaultKey: this.key,
+      defaultKey: this.usingAtlas ? this.atlasKey : this.fallbackKey,
       maxSize: 40,
     });
   }
 
-  /** Preload the projectile sprite. */
+  /** Preload atlas texture + frame data (and the single-image fallback). */
   static preload(scene) {
     const cfg = (window.GameConfig && GameConfig.projectile) || {};
     scene.load.image(
       cfg.key || 'player_projectile',
       resolveAsset(cfg.path || 'assets/player/projectile.png')
     );
+    // Atlas texture loads like any image; frames attach in registerFrames().
+    if (window.location.protocol !== 'file:') {
+      scene.load.json(
+        `${cfg.atlasKey || 'projectiles'}_data`,
+        resolveAsset(cfg.atlasDataPath || 'assets/player/projectiles.json')
+      );
+    }
+  }
+
+  /**
+   * Attach frame data to the atlas texture. Call once after textures load.
+   * Prefers the JSON fetched from disk; falls back to the embedded copy.
+   * @param {Phaser.Scene} scene
+   */
+  static registerFrames(scene) {
+    const cfg = (window.GameConfig && GameConfig.projectile) || {};
+    const key = cfg.atlasKey || 'projectiles';
+    if (!scene.textures.exists(key)) return;
+
+    const diskData = scene.cache.json.get(`${key}_data`);
+    const embedded = (window.EmbeddedAtlasData || {})[key];
+    const data = diskData || embedded;
+    if (!data || !data.frames) return;
+
+    const texture = scene.textures.get(key);
+    Object.entries(data.frames).forEach(([name, def]) => {
+      if (!texture.has(name)) {
+        const f = def.frame;
+        texture.add(name, 0, f.x, f.y, f.w, f.h);
+      }
+    });
+  }
+
+  /** Frame names available on the atlas (the selectable projectile types). */
+  getTypes() {
+    if (!this.scene.textures.exists(this.atlasKey)) return [];
+    return this.scene.textures.get(this.atlasKey)
+      .getFrameNames()
+      .filter((n) => n !== '__BASE');
+  }
+
+  /**
+   * Choose which projectile design to fire next.
+   * @param {string} frameName a frame from the atlas (e.g. 'disc_blue')
+   * @returns {boolean} true when the type exists and was selected
+   */
+  setType(frameName) {
+    if (!this.usingAtlas || !this.getTypes().includes(frameName)) return false;
+    this.currentType = frameName;
+    return true;
   }
 
   /**
@@ -49,7 +111,11 @@ class Projectiles {
 
     this.lastFiredAt = now;
 
-    shot.setTexture(this.key);
+    if (this.usingAtlas) {
+      shot.setTexture(this.atlasKey, this.currentType);
+    } else {
+      shot.setTexture(this.fallbackKey);
+    }
     shot.setActive(true);
     shot.setVisible(true);
     shot.setOrigin(0.5, 0.5);
