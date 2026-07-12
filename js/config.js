@@ -36,15 +36,32 @@ const GameConfig = {
   shield: {
     key: 'shield_orb',
     path: 'assets/effects/shield_orb.png',
+    ringKey: 'shield_ring',
+    ringPath: 'assets/effects/shield_ring.png',
     /** Bullet hits the shield absorbs before breaking. */
     hits: 10,
-    orbCount: 3,
-    orbitRadius: 42,
-    orbitSpeed: 2.6,
-    orbScale: 0.45,
+    /** Single ring that circles the ship while flickering. */
+    ringScale: 0.72,
+    ringSpinSpeed: 1.6,
+    flickerSpeed: 9,
     /** Pickup drifts down from the top; respawns on this interval. */
     pickupIntervalMs: 12000,
     pickupDriftSpeed: 55,
+  },
+
+  power: {
+    pelletKey: 'power_pellet',
+    pelletPath: 'assets/effects/power_pellet.png',
+    /** Boss occasionally emits a string of collectible white pellets. */
+    stringIntervalMs: 9000,
+    stringCount: 6,
+    stringGapMs: 130,
+    pelletSpeed: 120,
+    /** Pellets collected to fill the meter. */
+    meterMax: 12,
+    /** Full meter launches a homing blast at the boss. */
+    blastDamage: 150,
+    blastSpeed: 340,
   },
 
   projectile: {
@@ -68,7 +85,7 @@ const GameConfig = {
     scale: 0.175,
     spinSpeed: 4.6,
     /** Damage dealt to the boss per hit. */
-    damage: 15,
+    damage: 5,
   },
 
   bossBullets: {
@@ -113,14 +130,14 @@ const GameConfig = {
     maxHp: 1000,
     /** Descend-from-above entrance before the fight starts. */
     entranceMs: 2400,
-    /** Muzzle offsets (unscaled, relative to boss center) where bullets emanate. */
+    /** Muzzle offsets (unscaled, relative to boss center) at the wing tips. */
     muzzles: [
-      { x: -62, y: 58 },
-      { x: 62, y: 58 },
+      { x: -112, y: 58 },
+      { x: 112, y: 58 },
     ],
     /** Visible-art hit ellipse (unscaled) — tighter than the container box so
      *  impacts register on the paper, not the transparent padding. */
-    hitWidth: 205,
+    hitWidth: 245,
     hitHeight: 185,
     /** Horizontal sway across the screen while firing. */
     swayAmplitude: 200,

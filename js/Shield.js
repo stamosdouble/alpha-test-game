@@ -1,9 +1,10 @@
 /**
  * Shield power-up.
  *
- * An "S" token drifts down the screen; collecting it wraps the player in
- * orbiting yellow paper circles. The shield absorbs bullet hits (10 by
- * default) before breaking. Art is /assets/effects/shield_orb.png.
+ * An "S" token drifts down the screen; collecting it wraps the player in a
+ * single yellow paper ring that circles the ship while flickering. The
+ * shield absorbs bullet hits (10 by default) before breaking.
+ * Ring art: /assets/effects/shield_ring.png · token art: shield_orb.png
  */
 class Shield {
   /**
@@ -14,16 +15,16 @@ class Shield {
     this.scene = scene;
     const cfg = (window.GameConfig && GameConfig.shield) || {};
     this.key = options.key || cfg.key || 'shield_orb';
+    this.ringKey = options.ringKey || cfg.ringKey || 'shield_ring';
     this.maxHits = options.hits != null ? options.hits : (cfg.hits || 10);
-    this.orbCount = options.orbCount != null ? options.orbCount : (cfg.orbCount || 3);
-    this.orbitRadius = options.orbitRadius != null ? options.orbitRadius : (cfg.orbitRadius || 42);
-    this.orbitSpeed = options.orbitSpeed != null ? options.orbitSpeed : (cfg.orbitSpeed || 2.6);
-    this.orbScale = options.orbScale != null ? options.orbScale : (cfg.orbScale || 0.45);
+    this.ringScale = options.ringScale != null ? options.ringScale : (cfg.ringScale || 0.72);
+    this.ringSpinSpeed = options.ringSpinSpeed != null ? options.ringSpinSpeed : (cfg.ringSpinSpeed || 1.6);
+    this.flickerSpeed = options.flickerSpeed != null ? options.flickerSpeed : (cfg.flickerSpeed || 9);
     this.pickupIntervalMs = options.pickupIntervalMs != null ? options.pickupIntervalMs : (cfg.pickupIntervalMs || 12000);
     this.pickupDriftSpeed = options.pickupDriftSpeed != null ? options.pickupDriftSpeed : (cfg.pickupDriftSpeed || 55);
 
     this.hitsLeft = 0;
-    this.orbs = [];
+    this.ring = null;
     this.pickup = null;
     this.pickupText = null;
     this.pickupBornAt = 0;
@@ -37,12 +38,16 @@ class Shield {
     });
   }
 
-  /** Preload the shield orb sprite. */
+  /** Preload shield sprites (token + ring). */
   static preload(scene) {
     const cfg = (window.GameConfig && GameConfig.shield) || {};
     scene.load.image(
       cfg.key || 'shield_orb',
       resolveAsset(cfg.path || 'assets/effects/shield_orb.png')
+    );
+    scene.load.image(
+      cfg.ringKey || 'shield_ring',
+      resolveAsset(cfg.ringPath || 'assets/effects/shield_ring.png')
     );
   }
 
@@ -59,11 +64,16 @@ class Shield {
     if (!this.isActive()) return false;
     this.hitsLeft -= 1;
 
-    // Flash the orbs so absorption reads clearly.
-    this.orbs.forEach((orb) => {
-      orb.setAlpha(0.35);
-      this.scene.tweens.add({ targets: orb, alpha: 1, duration: 160 });
-    });
+    // Punch the ring so absorption reads clearly.
+    if (this.ring) {
+      this.ring.setScale(this.ringScale * 1.2);
+      this.scene.tweens.add({
+        targets: this.ring,
+        scale: this.ringScale,
+        duration: 160,
+        ease: 'Back.easeOut',
+      });
+    }
 
     if (this.hitsLeft <= 0) {
       this._break();
@@ -71,16 +81,13 @@ class Shield {
     return true;
   }
 
-  /** Activate (or refresh) the shield around the player. */
+  /** Activate (or refresh) the shield ring around the player. */
   activate() {
     this.hitsLeft = this.maxHits;
-    if (this.orbs.length === 0) {
-      for (let i = 0; i < this.orbCount; i++) {
-        const orb = this.scene.add.image(0, 0, this.key);
-        orb.setScale(this.orbScale);
-        orb.setDepth(25);
-        this.orbs.push(orb);
-      }
+    if (!this.ring) {
+      this.ring = this.scene.add.image(0, 0, this.ringKey);
+      this.ring.setScale(this.ringScale);
+      this.ring.setDepth(25);
     }
   }
 
@@ -89,8 +96,10 @@ class Shield {
     if (player && this.scene.sparks) {
       this.scene.sparks.burst(player.x, player.y);
     }
-    this.orbs.forEach((orb) => orb.destroy());
-    this.orbs = [];
+    if (this.ring) {
+      this.ring.destroy();
+      this.ring = null;
+    }
     this.hitsLeft = 0;
   }
 
@@ -119,7 +128,7 @@ class Shield {
   }
 
   /**
-   * Drift the pickup, check collection, and orbit the shield circles.
+   * Drift the pickup, check collection, and animate the flickering ring.
    * @param {number} time
    * @param {number} delta
    */
@@ -146,16 +155,13 @@ class Shield {
       }
     }
 
-    if (this.isActive() && player) {
-      const base = (time / 1000) * this.orbitSpeed;
-      this.orbs.forEach((orb, i) => {
-        const angle = base + (i / this.orbs.length) * Math.PI * 2;
-        orb.setPosition(
-          player.x + Math.cos(angle) * this.orbitRadius,
-          player.y + Math.sin(angle) * this.orbitRadius
-        );
-        orb.setVisible(player.visible);
-      });
+    if (this.isActive() && this.ring && player) {
+      const t = time / 1000;
+      this.ring.setPosition(player.x, player.y);
+      this.ring.rotation = t * this.ringSpinSpeed;
+      // Paper-lantern flicker.
+      this.ring.setAlpha(0.62 + 0.3 * Math.sin(t * this.flickerSpeed) + 0.08 * Math.sin(t * 23));
+      this.ring.setVisible(player.visible);
     }
   }
 }
