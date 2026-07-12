@@ -104,6 +104,22 @@ class Player extends Phaser.GameObjects.Sprite {
     }
   }
 
+  /**
+   * World-space wing muzzle positions (config offsets scaled with the ship).
+   * Falls back to the nose when no muzzles are configured.
+   * @returns {{x:number, y:number}[]}
+   */
+  getMuzzles() {
+    const cfg = (window.GameConfig && GameConfig.player) || {};
+    const offsets = cfg.muzzles && cfg.muzzles.length
+      ? cfg.muzzles
+      : [{ x: 0, y: -this.height * 0.5 }];
+    return offsets.map((m) => ({
+      x: this.x + m.x * this.scaleX,
+      y: this.y + m.y * this.scaleY,
+    }));
+  }
+
   /** True while post-hit invulnerability frames are active. */
   isInvulnerable() {
     return this.scene.time.now < this.invulnerableUntil;

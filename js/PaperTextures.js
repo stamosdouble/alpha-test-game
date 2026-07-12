@@ -32,6 +32,7 @@ const PaperTextures = {
     need(cfg.projectile?.atlasKey || 'projectiles', (s, k) => this.makeProjectileAtlas(s, k));
     need(cfg.sparks?.key || 'spark', (s, k) => this.makeSpark(s, k));
     need(cfg.bossBullets?.key || 'enemy_bullet', (s, k) => this.makeEnemyBullet(s, k));
+    need(cfg.shield?.key || 'shield_orb', (s, k) => this.makeShieldOrb(s, k));
     need(cfg.laser?.beamKey || 'beam_segment', (s, k) => this.makeBeam(s, k));
     need(cfg.laser?.tipKey || 'impact_tip', (s, k) => this.makeTip(s, k));
 
@@ -168,6 +169,27 @@ const PaperTextures = {
     ctx.closePath();
     ctx.fillStyle = 'rgb(250, 225, 120)';
     ctx.fill();
+    ctx.restore();
+
+    scene.textures.addCanvas(key, canvas);
+  },
+
+  makeShieldOrb(scene, key) {
+    const size = 64;
+    const canvas = document.createElement('canvas');
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext('2d');
+
+    const paper = document.createElement('canvas');
+    paper.width = size;
+    paper.height = size;
+    this._paperFill(paper.getContext('2d'), size, size, [240, 197, 66], 12);
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(32, 32, 26, 0, Math.PI * 2);
+    ctx.clip();
+    ctx.drawImage(paper, 0, 0);
     ctx.restore();
 
     scene.textures.addCanvas(key, canvas);

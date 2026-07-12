@@ -70,6 +70,9 @@ class GameScene extends Phaser.Scene {
     // Yellow triangle sparks on projectile impact
     this.sparks = new Sparks(this);
 
+    // Shield power-up ("S" token → orbiting yellow paper circles)
+    this.shield = new Shield(this);
+
     // Bullet-hell waves from the boss (rings, aimed fans, spirals)
     this.bossBullets = new BossBullets(this);
     this.hitsTaken = 0;
@@ -87,7 +90,18 @@ class GameScene extends Phaser.Scene {
     this.projectileDamage = (GameConfig.projectile && GameConfig.projectile.damage) || 50;
 
     this.physics.add.overlap(this.player, this.bossBullets.group, (player, bullet) => {
-      if (!bullet.active || player.isInvulnerable() || this.playerDead) return;
+      if (!bullet.active || this.playerDead) return;
+
+      // Shield soaks the hit before the hull ever sees it.
+      if (this.shield.isActive()) {
+        this.bossBullets.group.killAndHide(bullet);
+        bullet.body.stop();
+        this.shield.absorbHit();
+        this._updateShieldLabel();
+        return;
+      }
+
+      if (player.isInvulnerable()) return;
       this.bossBullets.group.killAndHide(bullet);
       bullet.body.stop();
       this.sparks.burst(player.x, player.y);
@@ -163,6 +177,13 @@ class GameScene extends Phaser.Scene {
     }).setOrigin(1, 0).setDepth(100).setScrollFactor(0);
     this._updateHitsLabel();
 
+    this.shieldLabel = this.add.text(width - 12, 52, '', {
+      fontFamily: 'Georgia, serif',
+      fontSize: '13px',
+      color: '#f0c542',
+    }).setOrigin(1, 0).setDepth(100).setScrollFactor(0);
+    this._updateShieldLabel();
+
     this.comboLabel = this.add.text(width / 2, 64, '', {
       fontFamily: 'Georgia, serif',
       fontSize: '24px',
@@ -237,10 +258,13 @@ class GameScene extends Phaser.Scene {
           this.laser.update(this.player.x, this.player.y, this.boss.x, this.boss.y);
         }
       } else {
-        // Spawn at the ship's nose, travelling straight up.
-        this.projectiles.fire(this.player.x, this.player.y - this.player.displayHeight * 0.5);
+        // Volley from both wing muzzles, travelling straight up.
+        this.projectiles.fireVolley(this.player.getMuzzles());
       }
     }
+
+    this.shield.update(time, delta);
+    this._updateShieldLabel();
   }
 
   _updateShotLabel() {
@@ -295,14 +319,30 @@ class GameScene extends Phaser.Scene {
     this._updateComboLabel();
   }
 
+  _updateShieldLabel() {
+    if (!this.shieldLabel) return;
+    const text = this.shield.isActive() ? `Shield: ${this.shield.hitsLeft} / ${this.shield.maxHits}` : '';
+    if (this.shieldLabel.text !== text) this.shieldLabel.setText(text);
+  }
+
   /** Pop sparks where projectiles strike the boss, damage it, chain combo. */
   _checkBossHits() {
     if (!this.boss || !this.boss.visible) return;
-    const bounds = this.boss.getBounds();
+
+    // Hit ellipse matched to the visible paper art — the container's
+    // bounding box includes transparent padding, which made sparks pop
+    // before shots actually reached the ship.
+    const bossCfg = GameConfig.boss;
+    const hw = ((bossCfg.hitWidth || 205) / 2) * this.boss.scaleX;
+    const hh = ((bossCfg.hitHeight || 185) / 2) * this.boss.scaleY;
+    const bx = this.boss.x;
+    const by = this.boss.y;
 
     this.projectiles.group.children.each((shot) => {
       if (!shot.active) return;
-      if (bounds.contains(shot.x, shot.y)) {
+      const dx = shot.x - bx;
+      const dy = shot.y - by;
+      if ((dx * dx) / (hw * hw) + (dy * dy) / (hh * hh) <= 1) {
         this.sparks.burst(shot.x, shot.y);
         this.projectiles.group.killAndHide(shot);
         shot.body.stop();

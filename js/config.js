@@ -26,6 +26,25 @@ const GameConfig = {
     swaySpeed: 3.2,
     /** Bullet hits the ship can take before it is destroyed. */
     maxHits: 6,
+    /** Wing muzzle offsets (unscaled, relative to ship center) for projectiles. */
+    muzzles: [
+      { x: -32, y: -6 },
+      { x: 32, y: -6 },
+    ],
+  },
+
+  shield: {
+    key: 'shield_orb',
+    path: 'assets/effects/shield_orb.png',
+    /** Bullet hits the shield absorbs before breaking. */
+    hits: 10,
+    orbCount: 3,
+    orbitRadius: 42,
+    orbitSpeed: 2.6,
+    orbScale: 0.45,
+    /** Pickup drifts down from the top; respawns on this interval. */
+    pickupIntervalMs: 12000,
+    pickupDriftSpeed: 55,
   },
 
   projectile: {
@@ -99,6 +118,10 @@ const GameConfig = {
       { x: -62, y: 58 },
       { x: 62, y: 58 },
     ],
+    /** Visible-art hit ellipse (unscaled) — tighter than the container box so
+     *  impacts register on the paper, not the transparent padding. */
+    hitWidth: 205,
+    hitHeight: 185,
     /** Horizontal sway across the screen while firing. */
     swayAmplitude: 200,
     swaySpeed: 0.45,
