@@ -71,8 +71,10 @@ class PowerPellets {
         if (!this.scene || !this.scene.sys || !this.scene.sys.isActive()) return;
         const b = this.scene.boss;
         if (!b || !b.visible) return;
-        const muzzles = b.getMuzzles ? b.getMuzzles() : [{ x: b.x, y: b.y }];
+        const muzzles = b.getMuzzles ? b.getMuzzles() : [];
+        if (!muzzles.length) return;
         const m = muzzles[this._muzzleFlip ? 0 : muzzles.length - 1];
+        if (!m) return;
 
         // Gentle downward drift with a slight lean toward the player.
         const player = this.scene.player;

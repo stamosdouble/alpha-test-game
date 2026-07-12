@@ -88,6 +88,8 @@ const GameConfig = {
     maxAlive: 6,
     scale: 0.85,
     speed: 90,
+    /** Minions fire their own green shots; boss bullet-hell stays muzzle-only. */
+    canShoot: true,
     fireRateMs: 1100,
     /** ~10% faster than the original 187. */
     bulletSpeed: 206,
@@ -171,10 +173,11 @@ const GameConfig = {
     entranceMs: 2400,
     /** Extra local-X push for wing_l / wing_r sprites (wider wingspan). */
     wingSpanOffset: 72,
-    /** Muzzle offsets (unscaled, relative to boss center) at the wing-tip barrels. */
+    /** Muzzle offsets (unscaled, relative to boss center) at the wing-tip barrels.
+     *  All boss bullet-hell shots spawn from these points only. */
     muzzles: [
-      { x: -188, y: 70 },
-      { x: 188, y: 70 },
+      { x: -178, y: 82 },
+      { x: 178, y: 82 },
     ],
     /** Minion hangar exits — fighters launch from openings in each wing. */
     wingExits: [
