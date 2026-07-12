@@ -1,5 +1,5 @@
 /**
- * Wing minions — little paper fighters that launch from the boss wingtips.
+ * Hull-side minions — little paper fighters that launch from the boss flanks.
  * They dive toward the player, fire green projectiles, and die in one hit.
  * Art: /assets/effects/minion_ship.png + green_bullet.png
  */
